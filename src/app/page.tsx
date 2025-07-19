@@ -4,21 +4,28 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     Rocket,
     Building2,
     FileText,
     Sparkles,
     AlertCircle,
+    Eye,
+    Settings,
+    Users
 } from 'lucide-react';
 import AgentProgress from '@/components/AgentProgress';
 import AgentResults from '@/components/AgentResults';
-import {
+import BlockEditor from '@/components/BlockEditor';
+import { 
     AgentProgress as AgentProgressType,
     AnalysisOutput,
-    StrategyOutput,
+    StrategyOutput, 
     ProposalOutput,
     ReviewOutput,
+    GeneratedRFQResponse,
+    ResponseBlock
 } from '@/lib/types';
 import { generateProposalResponse } from '@/lib/agents';
 
@@ -54,21 +61,17 @@ export default function Home() {
             message: 'Waiting for proposal draft...',
         },
     });
-
-    const [results, setResults] = useState<{
-        analysis?: AnalysisOutput;
-        strategy?: StrategyOutput;
-        proposal?: ProposalOutput;
-        review?: ReviewOutput;
-        logs?: any[];
-        summary?: any;
-    }>({});
+    
+    // New: Complete RFQ Response with blocks and insights
+    const [rfqResponse, setRfqResponse] = useState<GeneratedRFQResponse | null>(null);
+    const [responseBlocks, setResponseBlocks] = useState<ResponseBlock[]>([]);
 
     const generateResponse = async () => {
         setIsGenerating(true);
         setError(null);
-        setResults({});
-
+        setRfqResponse(null);
+        setResponseBlocks([]);
+        
         // Reset progress
         setAgentProgress({
             analyzer: {
@@ -85,11 +88,11 @@ export default function Home() {
                 message: 'Waiting for proposal draft...',
             },
         });
-
+        
         try {
             // Call the real server action orchestrator
             const result = await generateProposalResponse();
-
+            
             // Update UI as each agent completes (simulated since server action runs all at once)
             // Agent 1 completed
             setTimeout(() => {
@@ -97,8 +100,8 @@ export default function Home() {
                     ...prev,
                     analyzer: {
                         state: 'completed',
-                        message: `Found ${result.analysis.gaps.length} gaps, ${result.analysis.opportunities.length} opportunities identified`,
-                        result: result.analysis,
+                        message: `Found ${result.agentInsights.analysis.gaps.length} gaps, ${result.agentInsights.analysis.opportunities.length} opportunities identified`,
+                        result: result.agentInsights.analysis,
                     },
                     strategist: {
                         state: 'working',
@@ -106,24 +109,22 @@ export default function Home() {
                             'Developing partnership strategy for NAICS gap...',
                     },
                 }));
-                setResults((prev) => ({ ...prev, analysis: result.analysis }));
             }, 1000);
 
-            // Agent 2 completed
+            // Agent 2 completed  
             setTimeout(() => {
                 setAgentProgress((prev) => ({
                     ...prev,
                     strategist: {
                         state: 'completed',
-                        message: `Partnership strategy developed - ${result.strategy.winProbability}% win probability`,
-                        result: result.strategy,
+                        message: `Partnership strategy developed - ${result.agentInsights.strategy.winProbability}% win probability`,
+                        result: result.agentInsights.strategy,
                     },
                     writer: {
                         state: 'working',
-                        message: 'Generating professional proposal content...',
+                        message: 'Generating RFQ response blocks...',
                     },
                 }));
-                setResults((prev) => ({ ...prev, strategy: result.strategy }));
             }, 3000);
 
             // Agent 3 completed
@@ -132,8 +133,8 @@ export default function Home() {
                     ...prev,
                     writer: {
                         state: 'completed',
-                        message: `Proposal generated, ${result.proposal.submissionForms.length} forms completed`,
-                        result: result.proposal,
+                        message: `Generated ${result.blocks.length} response blocks with ${result.blocks.filter(b => b.type === 'Form').length} forms`,
+                        result: result.agentInsights.proposal,
                     },
                     reviewer: {
                         state: 'working',
@@ -141,27 +142,25 @@ export default function Home() {
                             'Reviewing compliance and finalizing submission package...',
                     },
                 }));
-                setResults((prev) => ({ ...prev, proposal: result.proposal }));
             }, 5000);
 
-            // Agent 4 completed
+            // Agent 4 completed - Set final results
             setTimeout(() => {
                 setAgentProgress((prev) => ({
                     ...prev,
                     reviewer: {
                         state: 'completed',
-                        message: `Compliance verified - ${result.review.finalScore}% submission confidence`,
-                        result: result.review,
+                        message: `Compliance verified - ${result.confidenceScore}% submission confidence`,
+                        result: result.agentInsights.review,
                     },
                 }));
-                setResults((prev) => ({
-                    ...prev,
-                    review: result.review,
-                    logs: result.logs,
-                    summary: result.summary,
-                }));
+                
+                // Set the complete RFQ response
+                setRfqResponse(result);
+                setResponseBlocks(result.blocks);
                 setIsGenerating(false);
             }, 6500);
+            
         } catch (error) {
             console.error('Generation failed:', error);
             setError(
@@ -190,12 +189,12 @@ export default function Home() {
                 }
                 return prev;
             });
-
+            
             setIsGenerating(false);
         }
     };
 
-    const hasResults = Object.keys(results).length > 0;
+    const hasResults = rfqResponse !== null;
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -211,15 +210,14 @@ export default function Home() {
                         </h1>
                     </div>
                     <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                        Multi-Agent Government Proposal Generator - Transform
-                        RFQs into winning proposals in 30 seconds
+                        Multi-Agent RFQ Response Generator - 4 AI specialists collaborate to create editable, professional government proposals
                     </p>
                     <div className="flex items-center justify-center space-x-4">
                         <Badge variant="secondary" className="text-sm">
                             🎯 4 Specialized Agents
                         </Badge>
                         <Badge variant="secondary" className="text-sm">
-                            ⚡ Real OpenAI Integration
+                            📝 Editable Block System
                         </Badge>
                         <Badge variant="secondary" className="text-sm">
                             🏛️ Government Contracting Expert
@@ -251,15 +249,13 @@ export default function Home() {
                     <CardHeader>
                         <CardTitle className="text-2xl font-bold flex items-center space-x-2">
                             <Sparkles className="w-6 h-6 text-blue-600" />
-                            <span>Generate Proposal</span>
+                            <span>Generate RFQ Response</span>
                         </CardTitle>
                         <p className="text-gray-600">
-                            Real contract data loaded. Click Generate to see 4
-                            AI agents analyze, strategize, write, and review a
-                            complete government proposal.
+                            Watch 4 AI agents analyze, strategize, write, and review a complete, editable government proposal response.
                         </p>
                     </CardHeader>
-
+                    
                     <CardContent className="space-y-6">
                         {/* RFQ Selection */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -321,7 +317,7 @@ export default function Home() {
 
                         {/* Generate Button */}
                         <div className="text-center">
-                            <Button
+                            <Button 
                                 onClick={generateResponse}
                                 disabled={isGenerating}
                                 size="lg"
@@ -341,8 +337,8 @@ export default function Home() {
                             </Button>
                             <p className="text-sm text-gray-500 mt-2">
                                 {isGenerating
-                                    ? 'Real OpenAI agents analyzing contract and generating strategic proposal...'
-                                    : 'Watch 4 specialized AI agents collaborate using real government contracting expertise'}
+                                    ? 'Real OpenAI agents generating structured RFQ response blocks...'
+                                    : 'Click to see AI agents collaborate and create an editable RFQ response'}
                             </p>
                         </div>
 
@@ -363,67 +359,62 @@ export default function Home() {
                     />
                 )}
 
-                {/* Results */}
-                {hasResults && (
-                    <AgentResults
-                        analysis={results.analysis}
-                        strategy={results.strategy}
-                        proposal={results.proposal}
-                        review={results.review}
-                    />
-                )}
+                {/* Main Results - Two Views */}
+                {hasResults && rfqResponse && (
+                    <div className="space-y-6">
+                        <Tabs defaultValue="response" className="w-full">
+                            <Card>
+                                <CardHeader>
+                                    <div className="flex items-center justify-between">
+                                        <CardTitle className="text-2xl font-bold">
+                                            Generated RFQ Response
+                                        </CardTitle>
+                                        <div className="flex items-center space-x-2">
+                                            <Badge variant="secondary" className={`${rfqResponse.submissionReady ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                                {rfqResponse.confidenceScore}% Confidence
+                                            </Badge>
+                                            {rfqResponse.submissionReady && (
+                                                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                                                    ✅ Submission Ready
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <TabsList className="grid w-full grid-cols-2 mt-4">
+                                        <TabsTrigger value="response" className="flex items-center space-x-2">
+                                            <Eye className="w-4 h-4" />
+                                            <span>RFQ Response Editor</span>
+                                        </TabsTrigger>
+                                        <TabsTrigger value="insights" className="flex items-center space-x-2">
+                                            <Users className="w-4 h-4" />
+                                            <span>Agent Insights</span>
+                                        </TabsTrigger>
+                                    </TabsList>
+                                </CardHeader>
 
-                {/* Debug Info (only show if we have logs) */}
-                {results.summary && process.env.NODE_ENV === 'development' && (
-                    <Card className="max-w-4xl mx-auto mt-8">
-                        <CardHeader>
-                            <CardTitle className="text-lg">
-                                Debug Info - Agent Performance
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                <div>
-                                    <p className="font-semibold">
-                                        Total Events
-                                    </p>
-                                    <p>{results.summary.totalEvents}</p>
-                                </div>
-                                <div>
-                                    <p className="font-semibold">
-                                        Success Rate
-                                    </p>
-                                    <p>
-                                        {Math.round(
-                                            (results.summary.successCount /
-                                                results.summary.totalEvents) *
-                                                100,
-                                        )}
-                                        %
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="font-semibold">Errors</p>
-                                    <p>{results.summary.errorCount}</p>
-                                </div>
-                                <div>
-                                    <p className="font-semibold">
-                                        Avg Response Time
-                                    </p>
-                                    <p>
-                                        {Object.values(
-                                            results.summary.agentStats,
-                                        ).reduce(
-                                            (acc: number, stat: any) =>
-                                                acc + stat.avgDuration,
-                                            0,
-                                        ) / 4}
-                                        ms
-                                    </p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                                <CardContent>
+                                    <TabsContent value="response" className="mt-6">
+                                        <BlockEditor
+                                            blocks={responseBlocks}
+                                            onBlocksChange={setResponseBlocks}
+                                            rfqNumber={rfqResponse.metadata.rfqNumber}
+                                            companyName={rfqResponse.metadata.companyName}
+                                            confidenceScore={rfqResponse.confidenceScore}
+                                        />
+                                    </TabsContent>
+
+                                    <TabsContent value="insights" className="mt-6">
+                                        <AgentResults 
+                                            analysis={rfqResponse.agentInsights.analysis}
+                                            strategy={rfqResponse.agentInsights.strategy} 
+                                            proposal={rfqResponse.agentInsights.proposal}
+                                            review={rfqResponse.agentInsights.review}
+                                        />
+                                    </TabsContent>
+                                </CardContent>
+                            </Card>
+                        </Tabs>
+                    </div>
                 )}
             </div>
         </div>
