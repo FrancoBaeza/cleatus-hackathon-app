@@ -1,0 +1,152 @@
+{
+	"id": "entity_32262ee7-01b1-4a12-9d4f-27a58bbe9b08",
+	"orgId": "org_2nOodcEiBOgWNV9GYloPHz5K6Jc",
+	"assistantId": "asst_wSc8txi06N71ncA5i5xYmt35",
+	"createdAt": "2024-10-13 21:07:16",
+	"ueiCode": "JRCGX2UNYWB1",
+	"businessName": "GUNN CONSTRUCTION LLC",
+	"website": "www.gunncon.com",
+	"incorporatedAddress": "2701 Lena Ct, Oakton, VA, 22124-null",
+	"physicalAddress": "3533 COLUMBIA PIKE, ARLINGTON, VA, 22204-4213",
+	"cageCode": "9HET5",
+	"annualRevenue": "",
+	"entityStartDate": "2023-02-28 00:00:00",
+	"registrationDate": "2023-03-13 00:00:00",
+	"naicsCodes": [
+		{
+			"code": "236115",
+			"name": "New Single-Family Housing Construction (except For-Sale Builders) "
+		},
+		{
+			"code": "236116",
+			"name": "New Multifamily Housing Construction (except For-Sale Builders) "
+		},
+		{
+			"code": "236117",
+			"name": "New Housing For-Sale Builders "
+		},
+		{
+			"code": "236118",
+			"name": "Residential Remodelers "
+		},
+		{
+			"code": "236210",
+			"name": "Industrial Building Construction "
+		},
+		{
+			"code": "236220",
+			"name": "Commercial and Institutional Building Construction "
+		},
+		{
+			"code": "237110",
+			"name": "Water and Sewer Line and Related Structures Construction "
+		},
+		{
+			"code": "237120",
+			"name": "Oil and Gas Pipeline and Related Structures Construction "
+		},
+		{
+			"code": "237130",
+			"name": "Power and Communication Line and Related Structures Construction "
+		},
+		{
+			"code": "237310",
+			"name": "Highway, Street, and Bridge Construction "
+		},
+		{
+			"code": "237990",
+			"name": "Other Heavy and Civil Engineering Construction "
+		},
+		{
+			"code": "238110",
+			"name": "Poured Concrete Foundation and Structure Contractors "
+		},
+		{
+			"code": "238120",
+			"name": "Structural Steel and Precast Concrete Contractors "
+		},
+		{
+			"code": "238130",
+			"name": "Framing Contractors "
+		},
+		{
+			"code": "238140",
+			"name": "Masonry Contractors "
+		},
+		{
+			"code": "238150",
+			"name": "Glass and Glazing Contractors "
+		},
+		{
+			"code": "238170",
+			"name": "Siding Contractors "
+		},
+		{
+			"code": "238190",
+			"name": "Other Foundation, Structure, and Building Exterior Contractors "
+		},
+		{
+			"code": "238210",
+			"name": "Electrical Contractors and Other Wiring Installation Contractors"
+		},
+		{
+			"code": "238220",
+			"name": "Plumbing, Heating, and Air-Conditioning Contractors "
+		},
+		{
+			"code": "238290",
+			"name": "Other Building Equipment Contractors "
+		},
+		{
+			"code": "238310",
+			"name": "Drywall and Insulation Contractors "
+		},
+		{
+			"code": "238320",
+			"name": "Painting and Wall Covering Contractors"
+		},
+		{
+			"code": "238330",
+			"name": "Flooring Contractors"
+		},
+		{
+			"code": "238340",
+			"name": "Tile and Terrazzo Contractors"
+		},
+		{
+			"code": "238350",
+			"name": "Finish Carpentry Contractors"
+		},
+		{
+			"code": "238390",
+			"name": "Other Building Finishing Contractors"
+		}
+	],
+	"naicsList": [
+		{
+			"code": "236210",
+			"name": "Industrial Building Construction "
+		}
+	],
+	"capabilityStatement": "doc_2d1470ef-b2b1-4039-8f9b-03ecc3cc1238",
+	"slug": "gunn-construction-llc",
+	"imageUrl": "https://m0jkvfm4zugfivzt.public.blob.vercel-storage.com/gunn-modified-wLHNPCr0lDcb3CdqzY9YqDfcR7Bens.webp",
+	"vectorStoreId": "vs_dD7zKLLIDQX9L3UWZEExiqeQ",
+	"mainNaics": {
+		"code": "236220",
+		"name": "Commercial and Institutional Building Construction "
+	},
+	"dealBreakers": "We do not want to receive contracts set aside for certifications we do not have, with places of performance outside our specified regions, with a design-build scope of work, over $5,000,000 in expected value, or requiring over five years of experience.",
+	"dealMakers": "We would like to see federal and state-level contracts near Arlington, Virginia, preferring places of performance in VA, MD, DC, WV, PA, NJ, and NC. We would like at least 15 days to bid on a project and prefer renovation construction work for residential, institutional, and commercial buildings. We prefer less complex and smaller projects under $1,000,000 that require less past performance.",
+	"contractTypePreference": "federal_and_state",
+	"lastOppProcessedAt": "2025-07-15 12:07:48",
+	"lastOppRunAt": "2025-07-15 12:07:49",
+	"updatedAt": "2025-06-10 18:24:27",
+	"certifications": "For Profit Organization Business or Organization Limited Liability Company",
+	"countries": null,
+	"subscriptionId": "sub_1OpHajDmrExSJ1zAB7aDiCU4",
+	"subscriptionStatus": "active",
+	"subscriptionCancelAt": null,
+	"seatsLimit": 2,
+	"additionalCertificate": ""
+}
