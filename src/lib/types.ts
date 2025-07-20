@@ -169,80 +169,165 @@ export const ReviewOutputSchema = z.object({
 // NEW: Data Analysis Output - Generic structure for any contract/entity
 export const DataAnalysisOutputSchema = z.object({
     contractInfo: z.object({
-        type: z.string().describe('Type of procurement (e.g., "Manufacturing", "Services", "Construction")'),
+        type: z
+            .string()
+            .describe(
+                'Type of procurement (e.g., "Manufacturing", "Services", "Construction")',
+            ),
         scope: z.string().describe('Brief scope description'),
-        keyRequirements: z.array(z.string()).describe('List of key requirements extracted from contract'),
-        deliverables: z.array(z.string()).describe('What needs to be delivered'),
-        locations: z.array(z.string()).describe('Delivery or performance locations'),
+        keyRequirements: z
+            .array(z.string())
+            .describe('List of key requirements extracted from contract'),
+        deliverables: z
+            .array(z.string())
+            .describe('What needs to be delivered'),
+        locations: z
+            .array(z.string())
+            .describe('Delivery or performance locations'),
         timeline: z.string().describe('Key dates and deadlines'),
-        setAsideType: z.string().optional().describe('Set-aside type if applicable (SDVOSB, Small Business, etc.)'),
-        specialRequirements: z.array(z.string()).describe('Special certifications, compliance, or unique requirements'),
+        setAsideType: z
+            .string()
+            .optional()
+            .describe(
+                'Set-aside type if applicable (SDVOSB, Small Business, etc.)',
+            ),
+        specialRequirements: z
+            .array(z.string())
+            .describe(
+                'Special certifications, compliance, or unique requirements',
+            ),
     }),
-    
+
     entityInfo: z.object({
-        primaryCapability: z.string().describe('Primary business capability or industry focus'),
-        relevantExperience: z.array(z.string()).describe('Relevant capabilities for this contract'),
-        competitiveAdvantages: z.array(z.string()).describe('Key competitive advantages'),
-        businessType: z.string().describe('Business classification (Small, Large, SDVOSB, etc.)'),
+        primaryCapability: z
+            .string()
+            .describe('Primary business capability or industry focus'),
+        relevantExperience: z
+            .array(z.string())
+            .describe('Relevant capabilities for this contract'),
+        competitiveAdvantages: z
+            .array(z.string())
+            .describe('Key competitive advantages'),
+        businessType: z
+            .string()
+            .describe('Business classification (Small, Large, SDVOSB, etc.)'),
     }),
-    
+
     gapAnalysis: z.object({
         naicsAlignment: z.object({
             required: z.string().describe('Required NAICS code'),
             entityPrimary: z.string().describe('Entity primary NAICS code'),
             isMatch: z.boolean().describe('Whether NAICS codes match'),
-            complianceApproach: z.string().describe('How to address NAICS gap if exists'),
+            complianceApproach: z
+                .string()
+                .describe('How to address NAICS gap if exists'),
         }),
-        capabilityGaps: z.array(z.string()).describe('Capability or experience gaps'),
-        complianceGaps: z.array(z.string()).describe('Regulatory or certification gaps'),
-        riskFactors: z.array(z.string()).describe('Key risk factors for this bid'),
+        capabilityGaps: z
+            .array(z.string())
+            .describe('Capability or experience gaps'),
+        complianceGaps: z
+            .array(z.string())
+            .describe('Regulatory or certification gaps'),
+        riskFactors: z
+            .array(z.string())
+            .describe('Key risk factors for this bid'),
     }),
-    
+
     opportunityAssessment: z.object({
-        winFactors: z.array(z.string()).describe('Factors that increase win probability'),
-        competitivePositioning: z.string().describe('How to position against competitors'),
-        valueProposition: z.string().describe('Core value proposition for this opportunity'),
-        estimatedWinProbability: z.number().min(0).max(100).describe('Estimated win probability percentage'),
+        winFactors: z
+            .array(z.string())
+            .describe('Factors that increase win probability'),
+        competitivePositioning: z
+            .string()
+            .describe('How to position against competitors'),
+        valueProposition: z
+            .string()
+            .describe('Core value proposition for this opportunity'),
+        estimatedWinProbability: z
+            .number()
+            .min(0)
+            .max(100)
+            .describe('Estimated win probability percentage'),
     }),
-    
+
     complianceRequirements: z.object({
-        requiredForms: z.array(z.object({
-            name: z.string(),
-            description: z.string(),
-            criticality: z.enum(['Required', 'Optional', 'Conditional']),
-        })).describe('Forms required for submission'),
-        certifications: z.array(z.string()).describe('Required certifications or registrations'),
-        submissionMethod: z.string().describe('How and where to submit the response'),
-        keyDeadlines: z.array(z.string()).describe('Critical deadlines to track'),
+        requiredForms: z
+            .array(
+                z.object({
+                    name: z.string(),
+                    description: z.string(),
+                    criticality: z.enum([
+                        'Required',
+                        'Optional',
+                        'Conditional',
+                    ]),
+                    formFields: z.array(z.object({
+                        name: z.string(),
+                        type: z.string(),
+                        required: z.boolean(),
+                        value: z.string(),
+                    })).optional(),
+                }),
+            )
+            .describe('Forms required for submission'),
+        certifications: z
+            .array(z.string())
+            .describe('Required certifications or registrations'),
+        submissionMethod: z
+            .string()
+            .describe('How and where to submit the response'),
+        keyDeadlines: z
+            .array(z.string())
+            .describe('Critical deadlines to track'),
     }),
-    
-    // NEW: Technical Requirements for detailed response generation
+
     technicalRequirements: z.object({
-        specifications: z.array(z.string()).describe('Specific technical specifications from contract'),
-        qualityStandards: z.array(z.string()).describe('Quality standards and testing requirements'),
-        deliveryRequirements: z.array(z.string()).describe('Delivery and installation requirements'),
-        warrantyRequirements: z.array(z.string()).describe('Warranty and support requirements'),
-        specialConsiderations: z.array(z.string()).describe('Any special technical considerations'),
+        specifications: z
+            .array(z.string())
+            .describe('Specific technical specifications from contract'),
+        qualityStandards: z
+            .array(z.string())
+            .describe('Quality standards and testing requirements'),
+        deliveryRequirements: z
+            .array(z.string())
+            .describe('Delivery and installation requirements'),
+        warrantyRequirements: z
+            .array(z.string())
+            .describe('Warranty and support requirements'),
+        specialConsiderations: z
+            .array(z.string())
+            .describe('Any special technical considerations'),
     }),
-    
-    // NEW: Pricing and Terms for response generation
+
     pricingAndTerms: z.object({
-        paymentTerms: z.array(z.string()).describe('Payment terms and conditions'),
-        deliveryTimeline: z.array(z.string()).describe('Delivery timeline requirements'),
+        paymentTerms: z
+            .array(z.string())
+            .describe('Payment terms and conditions'),
+        deliveryTimeline: z
+            .array(z.string())
+            .describe('Delivery timeline requirements'),
         warrantyTerms: z.array(z.string()).describe('Warranty requirements'),
-        financialRequirements: z.array(z.string()).describe('Any financial or bonding requirements'),
+        financialRequirements: z
+            .array(z.string())
+            .describe('Any financial or bonding requirements'),
     }),
-    
-    // Document Analysis (simplified - no form mapping)
+
     documentAnalysis: z.object({
-        documentsProcessed: z.array(z.object({
-            id: z.string(),
-            name: z.string(),
-            type: z.string(),
-            url: z.string(),
-            analysisSuccess: z.boolean(),
-            summary: z.string().optional().describe('Brief summary of document content'),
-        })).describe('Analysis of real contract documents for context'),
+        documentsProcessed: z
+            .array(
+                z.object({
+                    id: z.string(),
+                    name: z.string(),
+                    type: z.string(),
+                    url: z.string(),
+                    analysisSuccess: z.boolean(),
+                    summary: z
+                        .string()
+                        .optional()
+                        .describe('Brief summary of document content'),
+                }),
+            )
+            .describe('Analysis of real contract documents for context'),
     }),
 });
 
@@ -396,14 +481,14 @@ export const addChildToBlock = (
 
 export const flattenBlocks = (blocks: ResponseBlock[]): ResponseBlock[] => {
     const flattened: ResponseBlock[] = [];
-    
+
     const flatten = (block: ResponseBlock) => {
         flattened.push(block);
         if (block.children) {
             block.children.forEach(flatten);
         }
     };
-    
+
     blocks.forEach(flatten);
     return flattened;
 };

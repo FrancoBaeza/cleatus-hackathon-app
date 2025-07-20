@@ -67,66 +67,67 @@ export async function runStrategistAgent(
     );
 
     try {
-        const prompt = `You are developing the bid strategy for this RFQ response. Based on the data analysis and strategic insights, create a comprehensive strategy that maximizes win probability.
+        const prompt = `
+        You are an expert government contract strategist. Based on the data analysis and strategic insights, create a comprehensive strategy that maximizes win probability.
 
-DATA ANALYSIS CONTEXT:
-Contract: ${dataAnalysis.contractInfo.type} - ${dataAnalysis.contractInfo.scope}
-Entity: ${dataAnalysis.entityInfo.primaryCapability} (${dataAnalysis.entityInfo.businessType})
-Value Proposition: ${dataAnalysis.opportunityAssessment.valueProposition}
-Competitive Positioning: ${dataAnalysis.opportunityAssessment.competitivePositioning}
-Win Probability: ${dataAnalysis.opportunityAssessment.estimatedWinProbability}%
+        DATA ANALYSIS CONTEXT:
+        Contract: ${dataAnalysis.contractInfo.type} - ${dataAnalysis.contractInfo.scope}
+        Entity: ${dataAnalysis.entityInfo.primaryCapability} (${dataAnalysis.entityInfo.businessType})
+        Value Proposition: ${dataAnalysis.opportunityAssessment.valueProposition}
+        Competitive Positioning: ${dataAnalysis.opportunityAssessment.competitivePositioning}
+        Win Probability: ${dataAnalysis.opportunityAssessment.estimatedWinProbability}%
 
-DOCUMENT CONTEXT:
-Documents Processed: ${dataAnalysis.documentAnalysis.documentsProcessed.length} documents available for context
+        DOCUMENT CONTEXT:
+        Documents Processed: ${dataAnalysis.documentAnalysis.documentsProcessed.length} documents available for context
 
-STRATEGIC ANALYSIS:
-Requirements: ${analysis.requirements.join('; ')}
-Critical Gaps: ${analysis.gaps.join('; ')}
-Opportunities: ${analysis.opportunities.join('; ')}
-Risk Factors: ${analysis.riskFactors.join('; ')}
+        STRATEGIC ANALYSIS:
+        Requirements: ${analysis.requirements.join('; ')}
+        Critical Gaps: ${analysis.gaps.join('; ')}
+        Opportunities: ${analysis.opportunities.join('; ')}
+        Risk Factors: ${analysis.riskFactors.join('; ')}
 
-STRATEGIC INSIGHTS:
-- NAICS Strategy: ${analysis.insights.naicsStrategy}
-- Competitive Advantage: ${analysis.insights.competitiveAdvantage}
-- Risk Mitigation: ${analysis.insights.riskMitigation}
+        STRATEGIC INSIGHTS:
+        - NAICS Strategy: ${analysis.insights.naicsStrategy}
+        - Competitive Advantage: ${analysis.insights.competitiveAdvantage}
+        - Risk Mitigation: ${analysis.insights.riskMitigation}
 
-DEVELOP COMPREHENSIVE STRATEGY:
+        DEVELOP COMPREHENSIVE STRATEGY:
 
-1. POSITIONING: How to present the entity for this specific opportunity
-   - Craft a compelling positioning statement that highlights unique value
-   - Address the entity's core strengths relative to contract requirements
-   - Position any gaps as opportunities for partnership or innovation
-   - Frame the entity as the logical choice for this contract
+        1. POSITIONING: How to present the entity for this specific opportunity
+        - Craft a compelling positioning statement that highlights unique value
+        - Address the entity's core strengths relative to contract requirements
+        - Position any gaps as opportunities for partnership or innovation
+        - Frame the entity as the logical choice for this contract
 
-2. GAP MITIGATION: Specific approach to address identified gaps
-   - For each gap, develop a mitigation strategy that turns weakness into strength
-   - Create partnership strategies for capability gaps
-   - Develop compliance approaches for regulatory gaps
-   - Design risk management approaches for identified risks
+        2. GAP MITIGATION: Specific approach to address identified gaps
+        - For each gap, develop a mitigation strategy that turns weakness into strength
+        - Create partnership strategies for capability gaps
+        - Develop compliance approaches for regulatory gaps
+        - Design risk management approaches for identified risks
 
-3. VALUE PROPOSITIONS: Key value propositions that differentiate from competitors
-   - Identify 3-5 unique value propositions that resonate with this procurement
-   - Focus on entity strengths that align with contract priorities
-   - Emphasize competitive advantages in relevant areas
-   - Address how the entity delivers superior value
+        3. VALUE PROPOSITIONS: Key value propositions that differentiate from competitors
+        - Identify 3-5 unique value propositions that resonate with this procurement
+        - Focus on entity strengths that align with contract priorities
+        - Emphasize competitive advantages in relevant areas
+        - Address how the entity delivers superior value
 
-4. WIN PROBABILITY: Realistic assessment based on comprehensive analysis
-   - Provide updated win probability considering strategy implementation
-   - Identify key factors that could increase/decrease win probability
-   - Outline specific actions to optimize chances of selection
+        4. WIN PROBABILITY: Realistic assessment based on comprehensive analysis
+        - Provide updated win probability considering strategy implementation
+        - Identify key factors that could increase/decrease win probability
+        - Outline specific actions to optimize chances of selection
 
-5. PRICING STRATEGY: High-level approach to competitive pricing
-   - Recommend pricing approach (competitive, value-based, cost-plus)
-   - Consider set-aside advantages and market positioning
-   - Balance competitiveness with profitability
+        5. PRICING STRATEGY: High-level approach to competitive pricing
+        - Recommend pricing approach (competitive, value-based, cost-plus)
+        - Consider set-aside advantages and market positioning
+        - Balance competitiveness with profitability
 
-CONTENT STRATEGY FOR WRITER:
-- Key Messages: 3-5 core messages to emphasize throughout response
-- Tone Guidelines: Appropriate professional tone for this procurement type
-- Structure Recommendations: How to organize response for maximum impact
-- Evidence Requirements: What proof points and examples to include
+        CONTENT STRATEGY FOR WRITER:
+        - Key Messages: 3-5 core messages to emphasize throughout response
+        - Tone Guidelines: Appropriate professional tone for this procurement type
+        - Structure Recommendations: How to organize response for maximum impact
+        - Evidence Requirements: What proof points and examples to include
 
-Your strategy should transform challenges into advantages and position the entity as the best choice for this contract. Be specific and actionable - the Writer will use these guidelines to create the actual response.`;
+        Your strategy should transform challenges into advantages and position the entity as the best choice for this contract. Be specific and actionable - the Writer will use these guidelines to create the actual response.`;
 
         const result = await generateObject({
             model: openai(MODEL),

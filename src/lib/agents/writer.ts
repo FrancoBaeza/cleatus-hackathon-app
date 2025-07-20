@@ -167,6 +167,7 @@ export async function runWriterAgent(
     dataAnalysis: DataAnalysisOutput,
     analysis: AnalysisOutput,
     strategy: StrategyOutput,
+    entityJson?: any,
 ): Promise<ProposalOutput> {
     const startTime = AgentLogger.logAgentStart(
         'writer',
@@ -183,105 +184,151 @@ export async function runWriterAgent(
     );
 
     try {
-        const prompt = `You are writing a comprehensive RFQ response that will be submitted to government contracting officers. Generate detailed, professional response blocks based on the complete analysis and strategy.
+        const prompt = `
+        You are an expert government contracting assistant. Based on the extracted requirements from the RFQ document, your task is to write a complete, compliant, and professional quote response for submission to a U.S. Government RFQ.
 
-CONTRACT INFORMATION:
-Type: ${dataAnalysis.contractInfo.type}
-Scope: ${dataAnalysis.contractInfo.scope}
-Requirements: ${dataAnalysis.contractInfo.keyRequirements.join('; ')}
-Deliverables: ${dataAnalysis.contractInfo.deliverables.join('; ')}
-Locations: ${dataAnalysis.contractInfo.locations.join('; ')}
-Timeline: ${dataAnalysis.contractInfo.timeline}
-Submission Method: ${dataAnalysis.complianceRequirements.submissionMethod}
+        The response must:
 
-TECHNICAL REQUIREMENTS:
-Specifications: ${dataAnalysis.technicalRequirements?.specifications?.join('; ') || 'Not specified'}
-Quality Standards: ${dataAnalysis.technicalRequirements?.qualityStandards?.join('; ') || 'Not specified'}
-Delivery Requirements: ${dataAnalysis.technicalRequirements?.deliveryRequirements?.join('; ') || 'Not specified'}
-Warranty Requirements: ${dataAnalysis.technicalRequirements?.warrantyRequirements?.join('; ') || 'Not specified'}
+        - Include all mandatory company information, pricing details, and required documents.
+        - Clearly address all technical specifications and requirements outlined in the Statement of Work (SOW).
+        - Be formatted in a clear, formal, and concise manner suitable for federal acquisition officers.
+        - Be ready to send via email to the specified contracting officers.
 
-PRICING AND TERMS:
-Payment Terms: ${dataAnalysis.pricingAndTerms?.paymentTerms?.join('; ') || 'Not specified'}
-Delivery Timeline: ${dataAnalysis.pricingAndTerms?.deliveryTimeline?.join('; ') || 'Not specified'}
-Warranty Terms: ${dataAnalysis.pricingAndTerms?.warrantyTerms?.join('; ') || 'Not specified'}
+        Do not include unnecessary background or marketing language. Focus on compliance and completeness.
+        Use neutral, business-professional language and ensure it aligns with FAR/DFARS standards.
 
-ENTITY INFORMATION:
-Primary Capability: ${dataAnalysis.entityInfo.primaryCapability}
-Business Type: ${dataAnalysis.entityInfo.businessType}
-Relevant Experience: ${dataAnalysis.entityInfo.relevantExperience.join('; ')}
-Competitive Advantages: ${dataAnalysis.entityInfo.competitiveAdvantages.join('; ')}
+        IMPORTANT: 
+        You must include all the compliance requirements from the data analysis. If the information is not in the response, the government will not accept the response.
+        This information should have its own block in the response and be clear and ordered. 
+        Use the complete entity JSON data to extract all the company information and fill the form fields with the specific information you have extracted.
+        Use explicit information from the entity JSON, do not use generic information like [Redacted for Privacy] placeholders.
+        Use the actual company name, CAGE code, address, NAICS codes, and other specific details from the entity JSON.
 
-STRATEGY CONTEXT:
-Positioning: ${strategy.positioning}
-Win Probability: ${strategy.winProbability}%
-Key Messages: ${strategy.contentStrategy.keyMessages.join('; ')}
-Value Propositions: ${strategy.valuePropositions.join('; ')}
-Gap Mitigation: ${strategy.gapMitigation}
 
-DOCUMENT CONTEXT:
-Documents Processed: ${dataAnalysis.documentAnalysis.documentsProcessed.length} documents analyzed for technical requirements and specifications.
+        CONTRACT INFORMATION:
+        Type: ${dataAnalysis.contractInfo.type}
+        Scope: ${dataAnalysis.contractInfo.scope}
+        Requirements: ${dataAnalysis.contractInfo.keyRequirements.join('; ')}
+        Deliverables: ${dataAnalysis.contractInfo.deliverables.join('; ')}
+        Locations: ${dataAnalysis.contractInfo.locations.join('; ')}
+        Timeline: ${dataAnalysis.contractInfo.timeline}
+        Submission Method: ${dataAnalysis.complianceRequirements.submissionMethod}
 
-REQUIRED FORMS TO GENERATE:
-${dataAnalysis.complianceRequirements.requiredForms.map(form => `- ${form.name}: ${form.description} (${form.criticality})`).join('\n')}
+        TECHNICAL REQUIREMENTS:
+        Specifications: ${dataAnalysis.technicalRequirements?.specifications?.join('; ') || 'Not specified'}
+        Quality Standards: ${dataAnalysis.technicalRequirements?.qualityStandards?.join('; ') || 'Not specified'}
+        Delivery Requirements: ${dataAnalysis.technicalRequirements?.deliveryRequirements?.join('; ') || 'Not specified'}
+        Warranty Requirements: ${dataAnalysis.technicalRequirements?.warrantyRequirements?.join('; ') || 'Not specified'}
 
-CREATE HIERARCHICAL RESPONSE STRUCTURE:
+        PRICING AND TERMS:
+        Payment Terms: ${dataAnalysis.pricingAndTerms?.paymentTerms?.join('; ') || 'Not specified'}
+        Delivery Timeline: ${dataAnalysis.pricingAndTerms?.deliveryTimeline?.join('; ') || 'Not specified'}
+        Warranty Terms: ${dataAnalysis.pricingAndTerms?.warrantyTerms?.join('; ') || 'Not specified'}
 
-IMPORTANT: Generate a hierarchical structure where content is properly nested under headers.
-Each block should only contain ONE element - either a header OR content text, never both.
-Headers (H1, H2, H3) create sections that contain their child content.
+        ENTITY INFORMATION (FROM ANALYSIS):
+        Primary Capability: ${dataAnalysis.entityInfo.primaryCapability}
+        Business Type: ${dataAnalysis.entityInfo.businessType}
+        Relevant Experience: ${dataAnalysis.entityInfo.relevantExperience.join('; ')}
+        Competitive Advantages: ${dataAnalysis.entityInfo.competitiveAdvantages.join('; ')}
 
-GENERATE EXACTLY THE FOLLOWING BLOCKS IN ORDER:
+        COMPLETE ENTITY DATA (JSON):
+        ${entityJson ? JSON.stringify(entityJson, null, 2) : 'Entity JSON not provided'}
 
-BLOCK 1: H1 - "Response to ${dataAnalysis.contractInfo.type} - Solicitation [Number]"
-BLOCK 2: TEXT - "Executive Summary: [2-3 paragraph overview addressing the specific contract requirements and entity capabilities]"
+        STRATEGY CONTEXT:
+        Positioning: ${strategy.positioning}
+        Win Probability: ${strategy.winProbability}%
+        Key Messages: ${strategy.contentStrategy.keyMessages.join('; ')}
+        Value Propositions: ${strategy.valuePropositions.join('; ')}
+        Gap Mitigation: ${strategy.gapMitigation}
 
-BLOCK 3: H2 - "Company Information"
-BLOCK 4: H3 - "Company Overview"  
-BLOCK 5: TEXT - "[Comprehensive 200+ word company overview specifically addressing how the entity's capabilities align with this contract's requirements]"
-BLOCK 6: H3 - "Business Classification and Certifications"
-BLOCK 7: TEXT - "[Specific business type, certifications, NAICS alignment details relevant to this contract]"
-BLOCK 8: H3 - "Core Competencies"
-BLOCK 9: TEXT - "[Relevant experience and competitive advantages specifically related to this contract's scope, 150+ words]"
+        REQUIRED FORMS TO GENERATE:
+        ${dataAnalysis.complianceRequirements.requiredForms.map(form => {
+            const formFieldsInfo = form.formFields && form.formFields.length > 0 
+                ? `\n  Fields: ${form.formFields.map(field => `${field.name} (${field.type}, ${field.required ? 'required' : 'optional'})`).join(', ')}`
+                : '';
+            return `- ${form.name}: ${form.description} (${form.criticality})${formFieldsInfo}`;
+        }).join('\n')}
 
-BLOCK 10: H2 - "Technical Approach"
-BLOCK 11: H3 - "Understanding of Requirements"
-BLOCK 12: TEXT - "[Detailed demonstration of requirement comprehension, addressing each specific deliverable and technical specification from the contract, 250+ words]"
-BLOCK 13: H3 - "Technical Specifications and Methodology"
-BLOCK 14: TEXT - "[Detailed technical approach addressing the specific requirements, including product specifications, quality standards, and implementation methodology, 400+ words]"
-BLOCK 15: H3 - "Deliverables and Quality Assurance"
-BLOCK 16: TEXT - "[Specific QA measures for each deliverable, testing procedures, and compliance with contract specifications, 250+ words]"
+        CREATE HIERARCHICAL RESPONSE STRUCTURE:
 
-BLOCK 17: H2 - "Project Management and Delivery"
-BLOCK 18: H3 - "Project Organization"
-BLOCK 19: TEXT - "[Team structure and management approach specifically designed for this contract's requirements, 150+ words]"
-BLOCK 20: H3 - "Timeline and Risk Management"
-BLOCK 21: TEXT - "[Detailed project timeline with milestones, delivery schedule, and specific risk mitigation strategies for this contract, 250+ words]"
+        IMPORTANT: Generate a hierarchical structure where content is properly nested under headers.
+        Each block should only contain ONE element - either a header OR content text, never both.
+        Headers (H1, H2, H3) create sections that contain their child content.
 
-BLOCK 22: H2 - "Pricing and Terms"
-BLOCK 23: H3 - "Pricing Structure"
-BLOCK 24: TEXT - "[Detailed pricing breakdown for all deliverables, payment terms, and value proposition, 200+ words]"
-BLOCK 25: H3 - "Delivery and Warranty"
-BLOCK 26: TEXT - "[Specific delivery timeline, warranty terms, and post-delivery support, 150+ words]"
+        CREATIVE FREEDOM WITH CONTRACT FOCUS:
 
-FORMS: Generate one FORM block for each required form with appropriate fields.
+        You have complete creative freedom to structure the response, but you MUST include the following contract-specific elements:
 
-CRITICAL REQUIREMENTS FOR HIERARCHICAL STRUCTURE:
-- Each block contains ONLY text content (no mixing of titles and content)
-- Headers (H1, H2, H3) are separate blocks that contain children
-- Text blocks contain substantive content (200-500 words for major sections)
-- Maintain proper parent-child relationships in the hierarchy
-- Use appropriate depth levels (H1=0, H2=1, H3=2)
-- Address ALL contract requirements across the hierarchical structure
-- Follow strategic positioning throughout all content blocks
-- Generate forms as separate blocks with proper field structures
-- Make content SPECIFIC to the contract requirements, not generic
-- Include technical specifications, delivery details, and compliance information
+        REQUIRED CONTRACT ELEMENTS (be creative in how you present these):
+        1. Executive Summary - Address specific contract requirements and entity capabilities
+        2. Company Information - Show how entity capabilities align with this specific contract
+        3. Technical Approach - Address each deliverable and technical specification from the contract
+        4. Project Management - Show understanding of contract timeline and requirements
+        5. Pricing and Terms - Address contract payment terms and delivery requirements
 
-Generate a complete hierarchical structure with approximately 20-25 total blocks (including all headers and content). This atomized approach allows for better content organization and editing flexibility.`;
+        CREATIVE STRUCTURE GUIDELINES:
+        - Use creative, engaging section titles that reflect the specific contract
+        - Organize content in a logical flow that tells a compelling story
+        - Vary the depth and structure based on the contract complexity
+        - Include relevant subsections that address specific contract requirements
+        - Be creative with how you present technical specifications and methodology
+        - Adapt the structure to highlight the entity's strengths for this specific opportunity
+
+        CONTENT REQUIREMENTS:
+        - Make every section SPECIFIC to this contract's requirements
+        - Address each deliverable mentioned in the contract
+        - Include technical specifications relevant to this procurement
+        - Show understanding of the contract's quality standards and testing requirements
+        - Demonstrate compliance with contract terms and conditions
+        - Highlight competitive advantages for this specific opportunity
+
+        FORMS: Generate one FORM block for each required form with the specific fields identified in the analysis. Each form should include:
+        - Form title and description
+        - All required fields with proper types (text, email, tel, date, textarea, select)
+        - Pre-populated values where available from entity data
+        - Required field indicators
+        - Proper field validation and formatting
+
+        STRUCTURE EXAMPLE (but be creative):
+        - H1: Creative title that reflects the contract
+        - H2: Company Information (creative subsection titles)
+        - H2: Technical Approach (creative subsection titles)
+        - H2: Project Management (creative subsection titles)
+        - H2: Pricing and Terms (creative subsection titles)
+
+        CRITICAL REQUIREMENTS FOR HIERARCHICAL STRUCTURE:
+        - Each block contains ONLY text content (no mixing of titles and content)
+        - Headers (H1, H2, H3) are separate blocks that contain children
+        - Text blocks contain substantive content (150-600 words for major sections)
+        - Maintain proper parent-child relationships in the hierarchy
+        - Use appropriate depth levels (H1=0, H2=1, H3=2)
+        - Address ALL contract requirements across the hierarchical structure
+        - Follow strategic positioning throughout all content blocks
+        - Generate forms as separate blocks with proper field structures
+        - Make content SPECIFIC to the contract requirements, not generic
+        - Include technical specifications, delivery details, and compliance information
+        - Be creative and engaging while maintaining professionalism
+        - Vary content length based on importance and complexity
+
+        FORM GENERATION REQUIREMENTS:
+        - Use the exact form fields identified in the analysis
+        - Pre-populate fields with specific entity data from the JSON:
+          * Company Name: Use businessName from entity JSON
+          * CAGE Code: Use cageCode from entity JSON
+          * Address: Use physicalAddress from entity JSON
+          * NAICS Codes: Use naicsCodes array from entity JSON
+          * UEI Code: Use ueiCode from entity JSON
+          * Entity Start Date: Use entityStartDate from entity JSON
+        - Include all required fields with proper validation
+        - Structure forms as FORM blocks with metadata containing field definitions
+        - Ensure forms are submission-ready and compliant
+        - Use real, specific data, never placeholder text
+
+        Generate a complete hierarchical structure with approximately 15-30 total blocks (including all headers and content). Adapt the structure to the contract complexity and entity strengths. This atomized approach allows for better content organization and editing flexibility.`;
 
         const result = await generateObject({
             model: openai(MODEL),
-            system: 'You are an expert government proposal writer with extensive experience creating winning RFQ responses. Generate comprehensive, detailed response blocks that demonstrate capability and inspire confidence in government evaluators.',
+            system: 'You are a creative and experienced government proposal writer who specializes in crafting compelling, unique RFQ responses. You have a talent for presenting technical information in engaging ways while maintaining the professional tone required for government contracting. You adapt your writing style and structure to highlight the specific strengths of each company for each unique opportunity. Your responses are always contract-specific, creative, and designed to win.',
             prompt,
             schema: ProposalOutputSchema,
         });

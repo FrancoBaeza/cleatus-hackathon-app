@@ -63,7 +63,7 @@ export async function generateProposalResponse(): Promise<GeneratedRFQResponse> 
 
         // Step 4: Response Generation - Comprehensive RFQ response
         AgentLogger.logSystemEvent('Step 4: Generating comprehensive RFQ response blocks');
-        const proposal = await runWriterAgent(dataAnalysis, analysis, strategy);
+        const proposal = await runWriterAgent(dataAnalysis, analysis, strategy, entityJson);
 
         // Assemble final response
         const finalResponse: GeneratedRFQResponse = {

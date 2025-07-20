@@ -49,7 +49,7 @@ export default function ActionButtons({
                 </span>
             </Button>
 
-            {hasResponse && (
+            {/* {hasResponse && (
                 <>
                     <Button
                         onClick={handleExportPDF}
@@ -80,7 +80,7 @@ export default function ActionButtons({
                         <span>View JSON</span>
                     </Button>
                 </>
-            )}
+            )} */}
         </div>
     );
 } 

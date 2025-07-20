@@ -1,29 +1,29 @@
 'use server';
 
 /**
- * ENHANCED DATA ANALYZER AGENT - WITH DOCUMENT PROCESSING
- * 
+ * ENHANCED DATA ANALYZER AGENT - COMPREHENSIVE DOCUMENT PROCESSING
+ *
  * PURPOSE:
  * This agent serves as the foundation of our contract-agnostic RFQ response system.
  * It processes raw JSON data AND real contract documents, extracting structured
- * information and auto-filling forms using AI.
- * 
- * NEW CAPABILITIES:
- * 1. Downloads and analyzes real contract documents from URLs
- * 2. Extracts form fields from PDFs and documents
- * 3. Automatically maps entity data to form fields
- * 4. Pre-fills forms with high confidence scoring
- * 5. Provides comprehensive document analysis
- * 
+ * information and identifying ALL mandatory requirements for response generation.
+ *
+ * CRITICAL CAPABILITIES:
+ * 1. Downloads and analyzes ALL real contract documents from URLs
+ * 2. Extracts mandatory requirements and form fields from each document
+ * 3. Identifies submission requirements and critical deadlines
+ * 4. Maps entity data to contract requirements
+ * 5. Provides comprehensive, unified analysis for all downstream agents
+ *
  * RESPONSIBILITIES:
  * 1. Process raw contract JSON data to extract procurement type, scope, requirements
  * 2. Analyze entity JSON data to identify capabilities and business classification
- * 3. Download and analyze real contract documents for forms
- * 4. Extract form fields and requirements from documents
- * 5. Map entity information to form fields intelligently
- * 6. Pre-fill forms with confidence scoring and review flags
- * 7. Perform gap analysis between contract requirements and entity capabilities
- * 8. Assess opportunity potential and estimate win probability
+ * 3. Download and analyze ALL real contract documents for complete context
+ * 4. Extract mandatory requirements and form fields from each document
+ * 5. Map entity information to contract requirements intelligently
+ * 6. Perform comprehensive gap analysis between contract requirements and entity capabilities
+ * 7. Assess opportunity potential and estimate win probability
+ * 8. Identify ALL mandatory submission requirements for other agents
  */
 
 import { openai } from '@ai-sdk/openai';
@@ -31,162 +31,290 @@ import { generateObject } from 'ai';
 import { DataAnalysisOutputSchema, type DataAnalysisOutput } from '../types';
 import { AgentLogger } from '../logger';
 import { detailedLogger } from '../agent-logger';
-import { 
+import {
     fetchDocuments,
     type DocumentFetchResult,
-    type DocumentInfo 
+    type DocumentInfo,
 } from '../services/document-fetcher';
-import { 
-    extractDocumentInfo
-} from '../utils/document-utils';
 
-const MODEL = "gpt-4.1";
+const MODEL = 'gpt-4.1';
 
-export async function runDataAnalyzerAgent(contractJson: any, entityJson: any, documentsJson: any): Promise<DataAnalysisOutput> {
-    const startTime = Date.now();
-    console.log('🚀 Enhanced Data Analyzer: Starting comprehensive analysis...');
+export async function runDataAnalyzerAgent(
+    contractJson: any,
+    entityJson: any,
+    documentsJson: any,
+): Promise<DataAnalysisOutput> {
+    const startTime = AgentLogger.logAgentStart(
+        'data-analyzer',
+        'Data Analyzer',
+    );
+    const { executionId, startTime: detailedStartTime } = detailedLogger.logAgentStart('data-analyzer');
+
+    console.log(
+        '🚀 Enhanced Data Analyzer: Starting comprehensive analysis...',
+    );
 
     try {
-        // PHASE 1: Analyze raw JSON data (base analysis)
-        console.log('📊 Phase 1: Analyzing raw contract and entity data...');
-        const baseAnalysis = await analyzeRawContractData(contractJson, entityJson);
-        
-        // PHASE 2: Process real documents for context (simplified)
-        console.log('📄 Phase 2: Processing real contract documents for context...');
-        const documentAnalysis = await processContractDocuments(documentsJson);
-        
-        // PHASE 3: Combine all analysis results
-        console.log('🔄 Phase 3: Combining analysis results...');
-        const enhancedAnalysis: DataAnalysisOutput = {
-            ...baseAnalysis,
-            documentAnalysis,
-        };
-        
-        const duration = Date.now() - startTime;
-        
-        console.log(`✅ Enhanced Data Analyzer Complete (${duration}ms):`);
-        console.log(`   📋 Documents processed: ${documentAnalysis.documentsProcessed.length}`);
-        
-        return enhancedAnalysis;
+        //Unified analysis
+        const analisis = await analyzeContractData(
+            contractJson,
+            entityJson,
+            documentsJson,
+        );
 
+        detailedLogger.logAgentSuccess(
+            'data-analyzer',
+            executionId,
+            detailedStartTime,
+            analisis,
+            {
+                modelUsed: MODEL,
+            },
+        );
+
+        return analisis;
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error in enhanced data analysis';
+        const errorMessage =
+            error instanceof Error
+                ? error.message
+                : 'Unknown error in enhanced data analysis';
         console.error('❌ Enhanced Data Analyzer failed:', errorMessage);
         throw error;
     }
 }
 
 /**
- * PHASE 1: Analyzes raw contract and entity JSON data
+ * This function will analyze with AI all the information we have been provided.
+ * @param contractJson
+ * @param entityJson
+ * @param documentsJson
  */
-async function analyzeRawContractData(contractJson: any, entityJson: any) {
-            const prompt = `You are analyzing raw contract and entity data to extract structured information for RFQ response generation. Process the data thoroughly and extract key insights.
+async function analyzeContractData(
+    contractJson: any,
+    entityJson: any,
+    documentsJson: any,
+): Promise<DataAnalysisOutput> {
+    console.log('📄 Fetching and analyzing document content...');
 
-RAW CONTRACT DATA:
-${JSON.stringify(contractJson, null, 2)}
+    // Fetch all document content from markdown URLs
+    const documentContents = await fetchAllDocumentContents(documentsJson);
 
-RAW ENTITY DATA:
-${JSON.stringify(entityJson, null, 2)}
+    const prompt = `You are an expert government contract analyst specializing in RFQ response generation. 
+    
+    You will analyze a complete set of data including:
+    1. Contract information (JSON data)
+    2. Entity/company information (JSON data) 
+    3. Real document content (extracted from actual contract documents)
 
-EXTRACT AND STRUCTURE THE FOLLOWING:
+    Your task is to provide a comprehensive analysis that will be used by downstream AI agents to generate a complete RFQ response.
 
-1. CONTRACT INFORMATION:
-   - Type of procurement (construction, services, manufacturing, etc.)
-   - Scope and key requirements
-   - Deliverables and timeline
-   - Performance locations
-   - Set-aside type (SDVOSB, Small Business, etc.)
-   - Special requirements and certifications
+    IMPORTANT: You must extract all the information from the documents and the data, and fill the form fields with the information you have extracted.
 
-2. ENTITY ASSESSMENT:
-   - Primary business capability
-   - Relevant experience for this contract
-   - Competitive advantages
-   - Business classification and size
+    CONTRACT DATA:
+    ${JSON.stringify(contractJson, null, 2)}
 
-3. GAP ANALYSIS:
-   - NAICS code alignment between required and entity
-   - Capability gaps
-   - Compliance or certification gaps
-   - Risk factors
+    ENTITY DATA:
+    ${JSON.stringify(entityJson, null, 2)}
 
-4. OPPORTUNITY ASSESSMENT:
-   - Win factors and competitive positioning
-   - Value proposition for this opportunity
-   - Estimated win probability (realistic assessment)
+    DOCUMENT CONTENTS:
+    ${documentContents
+        .map(
+            (doc, index) => `
+    DOCUMENT ${index + 1}: ${doc.name}
+    Type: ${doc.type}
+    Content:
+    ${doc.content}
+    ---`,
+        )
+        .join('\n')}
 
-5. COMPLIANCE REQUIREMENTS:
-   - Required forms for submission (identify from contract data)
-   - Certifications needed
-   - Submission method and deadlines
+    ANALYZE ALL THIS INFORMATION AND PROVIDE:
 
-6. TECHNICAL REQUIREMENTS (NEW):
-   - Specific technical specifications from contract
-   - Quality standards and testing requirements
-   - Delivery and installation requirements
-   - Warranty and support requirements
-   - Any special technical considerations
+    1. CONTRACT INFORMATION:
+    - Type of procurement (construction, services, manufacturing, etc.)
+    - Scope and key requirements
+    - Deliverables and timeline
+    - Performance locations
+    - Set-aside type (SDVOSB, Small Business, etc.)
+    - Special requirements and certifications
 
-7. PRICING AND TERMS (NEW):
-   - Payment terms and conditions
-   - Delivery timeline requirements
-   - Warranty requirements
-   - Any financial or bonding requirements
+    2. ENTITY ASSESSMENT:
+    - Primary business capability
+    - Relevant experience for this contract
+    - Competitive advantages
+    - Business classification and size
 
-Be thorough and specific. Extract actual values from the data, don't make assumptions. Focus on technical details that will be needed for the response generation.`;
+    3. GAP ANALYSIS:
+    - NAICS code alignment between required and entity
+    - Capability gaps
+    - Compliance or certification gaps
+    - Risk factors
 
-            const result = await generateObject({
-            model: openai(MODEL),
-            prompt,
-            schema: DataAnalysisOutputSchema.omit({ documentAnalysis: true }),
-        });
+    4. OPPORTUNITY ASSESSMENT:
+    - Win factors and competitive positioning
+    - Value proposition for this opportunity
+    - Estimated win probability (realistic assessment)
 
-    return result.object;
+    5. COMPLIANCE REQUIREMENTS (!!! MOST IMPORTANT IT MUST BE COMPLETE AND CORRECT):
+   - ALL required forms for submission (extract from documents)
+   - For each form, include:
+     * name: Form name/title
+     * description: What the form is for
+     * criticality: 'Required', 'Optional', or 'Conditional'
+     * formFields: Array of form fields with name, type, required, and value
+   - ALL certifications and registrations needed
+   - Submission method and ALL deadlines
+   - Key compliance items from documents
+
+    6. TECHNICAL REQUIREMENTS:
+    - ALL technical specifications from contract and documents
+    - ALL quality standards and testing requirements
+    - ALL delivery and installation requirements
+    - ALL warranty and support requirements
+    - Any special technical considerations
+
+    7. PRICING AND TERMS:
+    - ALL payment terms and conditions
+    - ALL delivery timeline requirements
+    - ALL warranty requirements
+    - ALL financial or bonding requirements
+
+    8. DOCUMENT ANALYSIS:
+    - Summary of ALL documents processed
+    - Key findings from each document
+    - Mandatory requirements extracted from documents
+    - Form fields and submission requirements
+
+    CRITICAL REQUIREMENTS:
+    - Extract ALL mandatory requirements from the actual document content
+    - Identify ALL required forms and their specifications
+    - For each form, extract ALL form fields with their properties:
+    * name: Field name/label
+    * type: Field type (text, email, tel, date, textarea, select)
+    * required: Whether the field is mandatory
+    * value: Suggested value or placeholder
+    - Note ALL deadlines and submission requirements
+    - Include ALL technical specifications and quality standards
+    - Ensure NO mandatory elements are missed
+    - Provide complete, actionable information for response generation
+
+    FORM STRUCTURE EXAMPLE:
+    For each required form, structure it like this:
+    {
+    "name": "Attachment 2 - Contractor Release of Financial Information",
+    "description": "Form for contractor to authorize financial information release",
+    "criticality": "Required",
+    "formFields": [
+        {
+        "name": "Contractor Name",
+        "type": "text",
+        "required": true,
+        "value": "GUNN CONSTRUCTION LLC"
+        },
+        {
+        "name": "CAGE Code",
+        "type": "text", 
+        "required": true,
+        "value": "9HET5"
+        }
+    ]
+    }
+
+    Be thorough and specific. Extract actual values from the data and documents, don't make assumptions. Focus on information that will be needed for the complete RFQ response generation.`;
+
+    const response = await generateObject({
+        model: openai(MODEL),
+        schema: DataAnalysisOutputSchema,
+        prompt,
+    });
+
+    return response.object;
 }
 
 /**
- * PHASE 2: Processes real contract documents for context (simplified)
+ * Fetches content from all document markdown URLs
  */
-async function processContractDocuments(documentsJson: any) {
-    try {
-        // Extract document information from contract data
-        const documentsData = documentsJson || [];
-        if (!Array.isArray(documentsData) || documentsData.length === 0) {
-            console.log('⚠️ No documents found in contract data, skipping document analysis');
-            return {
-                documentsProcessed: [],
-            };
+async function fetchAllDocumentContents(
+    documentsJson: any,
+): Promise<Array<{ name: string; type: string; content: string }>> {
+    const documents = documentsJson || [];
+    const contents: Array<{ name: string; type: string; content: string }> = [];
+
+    console.log(`📥 Fetching content from ${documents.length} documents...`);
+
+    for (const doc of documents) {
+        try {
+            if (doc.markdownUrl) {
+                console.log(`📄 Fetching markdown content: ${doc.filename}`);
+                const response = await fetch(doc.markdownUrl);
+
+                if (response.ok) {
+                    const content = await response.text();
+
+                    // Verify we got actual text content, not binary data
+                    if (
+                        content.length > 0 &&
+                        !content.startsWith('JVBERi') &&
+                        !content.includes('%PDF')
+                    ) {
+                        contents.push({
+                            name: doc.filename,
+                            type: doc.docType || doc.type || 'unknown',
+                            content: content.substring(0, 15000), // Limit content length
+                        });
+                        console.log(
+                            `✅ Successfully fetched: ${doc.filename} (${content.length} chars)`,
+                        );
+                    } else {
+                        console.log(
+                            `⚠️ Got binary content for: ${doc.filename}, using summary instead`,
+                        );
+                        contents.push({
+                            name: doc.filename,
+                            type: doc.docType || doc.type || 'unknown',
+                            content:
+                                doc.summary ||
+                                `[Document: ${
+                                    doc.displayName || doc.filename
+                                }]`,
+                        });
+                    }
+                } else {
+                    console.log(
+                        `❌ Failed to fetch markdown: ${doc.filename} (${response.status})`,
+                    );
+                    contents.push({
+                        name: doc.filename,
+                        type: doc.docType || doc.type || 'unknown',
+                        content:
+                            doc.summary ||
+                            `[Document: ${doc.displayName || doc.filename}]`,
+                    });
+                }
+            } else {
+                console.log(
+                    `⚠️ No markdown URL for: ${doc.filename}, using summary`,
+                );
+                contents.push({
+                    name: doc.filename,
+                    type: doc.docType || doc.type || 'unknown',
+                    content:
+                        doc.summary ||
+                        `[Document: ${doc.displayName || doc.filename}]`,
+                });
+            }
+        } catch (error) {
+            console.error(`❌ Error fetching ${doc.filename}:`, error);
+            contents.push({
+                name: doc.filename,
+                type: doc.docType || doc.type || 'unknown',
+                content:
+                    doc.summary ||
+                    `[Document: ${doc.displayName || doc.filename}]`,
+            });
         }
-
-        // Extract document info for downloading
-        const documentInfos = extractDocumentInfo(documentsData);
-        
-        // Download documents
-        console.log(`📥 Downloading ${documentInfos.length} documents for context...`);
-        const fetchResults = await fetchDocuments(documentInfos);
-        
-        // Prepare document analysis summary
-        const documentAnalysis = {
-            documentsProcessed: Array.from(fetchResults.entries()).map(([id, result]) => {
-                const docInfo = documentInfos.find(d => d.id === id)!;
-                
-                return {
-                    id,
-                    name: docInfo.filename,
-                    type: docInfo.type,
-                    url: docInfo.url,
-                    analysisSuccess: result.success,
-                    summary: result.success ? 'Document successfully processed for context' : 'Failed to process document',
-                };
-            }),
-        };
-
-        return documentAnalysis;
-
-    } catch (error) {
-        console.error('❌ Error processing contract documents:', error);
-        return {
-            documentsProcessed: [],
-        };
     }
-} 
+
+    console.log(`📋 Successfully processed ${contents.length} documents`);
+    return contents;
+}

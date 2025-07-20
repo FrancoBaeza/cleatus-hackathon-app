@@ -121,7 +121,10 @@ export async function executeWriter(
     try {
         AgentLogger.logSystemEvent('Starting Writer execution');
         
-        const result = await runWriterAgent(dataAnalysis, analysis, strategy);
+        // Load entity JSON for complete company information
+        const entityJson = require('../../../data/entity-data/entity.json');
+        
+        const result = await runWriterAgent(dataAnalysis, analysis, strategy, entityJson);
         
         AgentLogger.logSystemEvent('Writer completed successfully', {
             responseBlocksCount: result.responseBlocks.length,

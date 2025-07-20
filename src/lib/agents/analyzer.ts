@@ -53,66 +53,66 @@ export async function runAnalyzerAgent(dataAnalysis: DataAnalysisOutput): Promis
     try {
         const prompt = `You are conducting strategic analysis for an RFQ response. Based on the structured data analysis, provide strategic insights for the response team.
 
-STRUCTURED DATA ANALYSIS:
-Contract Type: ${dataAnalysis.contractInfo.type}
-Scope: ${dataAnalysis.contractInfo.scope}
-Key Requirements: ${dataAnalysis.contractInfo.keyRequirements.join('; ')}
-Deliverables: ${dataAnalysis.contractInfo.deliverables.join('; ')}
-Performance Locations: ${dataAnalysis.contractInfo.locations.join('; ')}
-Timeline: ${dataAnalysis.contractInfo.timeline}
-Set-Aside: ${dataAnalysis.contractInfo.setAsideType || 'Not specified'}
+        STRUCTURED DATA ANALYSIS:
+        Contract Type: ${dataAnalysis.contractInfo.type}
+        Scope: ${dataAnalysis.contractInfo.scope}
+        Key Requirements: ${dataAnalysis.contractInfo.keyRequirements.join('; ')}
+        Deliverables: ${dataAnalysis.contractInfo.deliverables.join('; ')}
+        Performance Locations: ${dataAnalysis.contractInfo.locations.join('; ')}
+        Timeline: ${dataAnalysis.contractInfo.timeline}
+        Set-Aside: ${dataAnalysis.contractInfo.setAsideType || 'Not specified'}
 
-Entity Primary Capability: ${dataAnalysis.entityInfo.primaryCapability}
-Relevant Experience: ${dataAnalysis.entityInfo.relevantExperience.join('; ')}
-Business Type: ${dataAnalysis.entityInfo.businessType}
+        Entity Primary Capability: ${dataAnalysis.entityInfo.primaryCapability}
+        Relevant Experience: ${dataAnalysis.entityInfo.relevantExperience.join('; ')}
+        Business Type: ${dataAnalysis.entityInfo.businessType}
 
-NAICS Alignment: Required ${dataAnalysis.gapAnalysis.naicsAlignment.required} vs Entity ${dataAnalysis.gapAnalysis.naicsAlignment.entityPrimary} (Match: ${dataAnalysis.gapAnalysis.naicsAlignment.isMatch})
-Capability Gaps: ${dataAnalysis.gapAnalysis.capabilityGaps.join('; ')}
-Risk Factors: ${dataAnalysis.gapAnalysis.riskFactors.join('; ')}
+        NAICS Alignment: Required ${dataAnalysis.gapAnalysis.naicsAlignment.required} vs Entity ${dataAnalysis.gapAnalysis.naicsAlignment.entityPrimary} (Match: ${dataAnalysis.gapAnalysis.naicsAlignment.isMatch})
+        Capability Gaps: ${dataAnalysis.gapAnalysis.capabilityGaps.join('; ')}
+        Risk Factors: ${dataAnalysis.gapAnalysis.riskFactors.join('; ')}
 
-Win Factors: ${dataAnalysis.opportunityAssessment.winFactors.join('; ')}
-Estimated Win Probability: ${dataAnalysis.opportunityAssessment.estimatedWinProbability}%
+        Win Factors: ${dataAnalysis.opportunityAssessment.winFactors.join('; ')}
+        Estimated Win Probability: ${dataAnalysis.opportunityAssessment.estimatedWinProbability}%
 
-DOCUMENT ANALYSIS:
-Documents Processed: ${dataAnalysis.documentAnalysis.documentsProcessed.length} documents analyzed for context
+        DOCUMENT ANALYSIS:
+        Documents Processed: ${dataAnalysis.documentAnalysis.documentsProcessed.length} documents analyzed for context
 
-PROVIDE STRATEGIC ANALYSIS:
+        PROVIDE STRATEGIC ANALYSIS:
 
-1. REQUIREMENTS: Comprehensive list of what the RFQ asks for
-   - Break down ALL contract requirements into specific deliverables
-   - Include performance standards, delivery locations, timeline requirements
-   - Identify any special or unique requirements that differentiate this contract
+        1. REQUIREMENTS: Comprehensive list of what the RFQ asks for
+        - Break down ALL contract requirements into specific deliverables
+        - Include performance standards, delivery locations, timeline requirements
+        - Identify any special or unique requirements that differentiate this contract
 
-2. GAPS: Critical gaps between requirements and entity capabilities  
-   - Capability gaps: What skills/experience are missing
-   - Resource gaps: What resources/equipment are needed
-   - Compliance gaps: What certifications/registrations are missing
-   - Experience gaps: What past performance is lacking
+        2. GAPS: Critical gaps between requirements and entity capabilities  
+        - Capability gaps: What skills/experience are missing
+        - Resource gaps: What resources/equipment are needed
+        - Compliance gaps: What certifications/registrations are missing
+        - Experience gaps: What past performance is lacking
 
-3. RISK FACTORS: Key risks that could impact bid success
-   - Technical risks: Ability to meet specifications
-   - Schedule risks: Timeline challenges
-   - Compliance risks: Regulatory or procedural issues
-   - Competitive risks: Strong competition or disadvantages
+        3. RISK FACTORS: Key risks that could impact bid success
+        - Technical risks: Ability to meet specifications
+        - Schedule risks: Timeline challenges
+        - Compliance risks: Regulatory or procedural issues
+        - Competitive risks: Strong competition or disadvantages
 
-4. OPPORTUNITIES: Strategic opportunities to leverage
-   - Entity strengths that align with contract needs
-   - Market advantages (location, relationships, certifications)
-   - Competitive positioning opportunities
-   - Partnership or teaming opportunities
+        4. OPPORTUNITIES: Strategic opportunities to leverage
+        - Entity strengths that align with contract needs
+        - Market advantages (location, relationships, certifications)
+        - Competitive positioning opportunities
+        - Partnership or teaming opportunities
 
-5. COMPLIANCE ITEMS: All compliance requirements to address
-   - Required forms and documentation
-   - Certifications and registrations needed
-   - Set-aside compliance requirements
-   - Submission requirements and deadlines
+        5. COMPLIANCE ITEMS: All compliance requirements to address
+        - Required forms and documentation
+        - Certifications and registrations needed
+        - Set-aside compliance requirements
+        - Submission requirements and deadlines
 
-6. STRATEGIC INSIGHTS:
-   - NAICS Strategy: Specific approach to address NAICS alignment issues
-   - Competitive Advantage: How to position entity strengths effectively
-   - Risk Mitigation: How to address key risks and gaps
+        6. STRATEGIC INSIGHTS:
+        - NAICS Strategy: Specific approach to address NAICS alignment issues
+        - Competitive Advantage: How to position entity strengths effectively
+        - Risk Mitigation: How to address key risks and gaps
 
-Focus on actionable insights that enable the team to create a winning response strategy.`;
+        Focus on actionable insights that enable the team to create a winning response strategy.`;
 
         const result = await generateObject({
             model: openai(MODEL),
