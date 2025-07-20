@@ -44,12 +44,123 @@ import {
     type ProposalOutput, 
     type DataAnalysisOutput, 
     type AnalysisOutput,
-    type StrategyOutput 
+    type StrategyOutput,
+    type ResponseBlock,
+    createHierarchicalBlock 
 } from '../types';
 import { AgentLogger } from '../logger';
 import { detailedLogger } from '../agent-logger';
 
 const MODEL = "gpt-4.1";
+
+/**
+ * Helper function to create hierarchical response blocks structure
+ * Converts AI-generated flat blocks into proper hierarchical structure
+ */
+function buildHierarchicalStructure(flatBlocks: any[]): ResponseBlock[] {
+    const hierarchicalBlocks: ResponseBlock[] = [];
+    let currentOrder = 0;
+    
+    // Find the root H1 block or create one if missing
+    let rootBlock: ResponseBlock;
+    const h1Block = flatBlocks.find(b => b.type === 'H1');
+    
+    if (h1Block) {
+        rootBlock = createHierarchicalBlock(
+            'H1',
+            h1Block.text,
+            currentOrder++,
+            [],
+            0
+        );
+        rootBlock.id = h1Block.id || crypto.randomUUID();
+        rootBlock.metadata = h1Block.metadata;
+    } else {
+        // Create default root if no H1 found
+        rootBlock = createHierarchicalBlock(
+            'H1',
+            'RFQ Response',
+            currentOrder++,
+            [],
+            0
+        );
+    }
+    
+    // Process remaining blocks and organize into hierarchy
+    let currentH2: ResponseBlock | null = null;
+    let currentH3: ResponseBlock | null = null;
+    
+    for (const block of flatBlocks) {
+        if (block.type === 'H1') continue; // Already processed
+        
+        const newBlock: ResponseBlock = {
+            id: block.id || crypto.randomUUID(),
+            type: block.type,
+            text: block.text,
+            order: currentOrder++,
+            editable: block.editable !== false,
+            children: [],
+            depth: 0,
+            metadata: block.metadata,
+        };
+        
+        if (block.type === 'H2') {
+            // Add previous H2 to root if exists
+            if (currentH2) {
+                if (!rootBlock.children) rootBlock.children = [];
+                rootBlock.children.push(currentH2);
+            }
+            // Start new H2 section
+            currentH2 = { ...newBlock, depth: 1, children: [] };
+            currentH3 = null;
+        } else if (block.type === 'H3') {
+            // Add previous H3 to current H2 if exists
+            if (currentH3 && currentH2) {
+                if (!currentH2.children) currentH2.children = [];
+                currentH2.children.push(currentH3);
+            }
+            // Start new H3 section
+            currentH3 = { ...newBlock, depth: 2, children: [] };
+        } else if (block.type === 'Text') {
+            // Add text to appropriate parent
+            const textBlock = { ...newBlock };
+            
+            if (currentH3) {
+                textBlock.depth = 3;
+                if (!currentH3.children) currentH3.children = [];
+                currentH3.children.push(textBlock);
+            } else if (currentH2) {
+                textBlock.depth = 2;
+                if (!currentH2.children) currentH2.children = [];
+                currentH2.children.push(textBlock);
+            } else {
+                textBlock.depth = 1;
+                if (!rootBlock.children) rootBlock.children = [];
+                rootBlock.children.push(textBlock);
+            }
+        } else if (block.type === 'Form') {
+            // Forms are direct children of root
+            const formBlock = { ...newBlock, depth: 1 };
+            if (!rootBlock.children) rootBlock.children = [];
+            rootBlock.children.push(formBlock);
+        }
+    }
+    
+    // Add final H3 to H2 if exists
+    if (currentH3 && currentH2) {
+        if (!currentH2.children) currentH2.children = [];
+        currentH2.children.push(currentH3);
+    }
+    
+    // Add final H2 to root if exists
+    if (currentH2) {
+        if (!rootBlock.children) rootBlock.children = [];
+        rootBlock.children.push(currentH2);
+    }
+    
+    hierarchicalBlocks.push(rootBlock);
+    return hierarchicalBlocks;
+}
 
 export async function runWriterAgent(
     dataAnalysis: DataAnalysisOutput,
@@ -98,61 +209,52 @@ Gap Mitigation: ${strategy.gapMitigation}
 REQUIRED FORMS TO GENERATE:
 ${dataAnalysis.complianceRequirements.requiredForms.map(form => `- ${form.name}: ${form.description} (${form.criticality})`).join('\n')}
 
-CREATE COMPREHENSIVE RESPONSE BLOCKS:
+CREATE HIERARCHICAL RESPONSE STRUCTURE:
 
-1. H1 BLOCK: Professional title for the RFQ response
-   - Use formal government contracting language
-   - Include contract/solicitation number and brief scope
+IMPORTANT: Generate a hierarchical structure where content is properly nested under headers.
+Each block should only contain ONE element - either a header OR content text, never both.
+Headers (H1, H2, H3) create sections that contain their child content.
 
-2. H2 BLOCK: "Company Information" 
-   - Comprehensive company overview following strategic positioning
-   - Highlight relevant capabilities and competitive advantages
-   - Address business classification and certifications
-   - Demonstrate understanding of contract requirements
+GENERATE EXACTLY THE FOLLOWING BLOCKS IN ORDER:
 
-3. FORM BLOCKS: Generate forms exactly as specified in compliance requirements
-   - Create appropriate field structures for each required form
-   - Pre-populate known entity data where appropriate
-   - Leave user-specific fields empty for completion
-   - Include clear instructions for completion
+BLOCK 1: H1 - "Response to ${dataAnalysis.contractInfo.type} - Solicitation [Number]"
+BLOCK 2: TEXT - "Executive Summary: [2-3 paragraph overview of your response and capability]"
 
-4. H2 BLOCK: "Technical Approach" or equivalent for this contract type
-   - Professional section header appropriate for procurement type
+BLOCK 3: H2 - "Company Information"
+BLOCK 4: H3 - "Company Overview"  
+BLOCK 5: TEXT - "[Comprehensive 200+ word company overview, positioning, capabilities]"
+BLOCK 6: H3 - "Business Classification and Certifications"
+BLOCK 7: TEXT - "[Business type, certifications, NAICS alignment details]"
+BLOCK 8: H3 - "Core Competencies"
+BLOCK 9: TEXT - "[Relevant experience and competitive advantages, 150+ words]"
 
-5. TEXT BLOCK: Detailed technical response addressing all requirements and deliverables
-   - Address EVERY contract requirement and deliverable specifically
-   - Include methodology, approach, and implementation details
-   - Demonstrate capability to meet performance standards
-   - Address timeline and delivery requirements
-   - Include gap mitigation strategies (partnerships, certifications, etc.)
-   - Follow strategic messaging and positioning guidelines
+BLOCK 10: H2 - "Technical Approach"
+BLOCK 11: H3 - "Understanding of Requirements"
+BLOCK 12: TEXT - "[Demonstration of requirement comprehension, 200+ words]"
+BLOCK 13: H3 - "Methodology and Implementation"
+BLOCK 14: TEXT - "[Detailed technical approach and implementation, 300+ words]"
+BLOCK 15: H3 - "Deliverables and Quality Assurance"
+BLOCK 16: TEXT - "[How each deliverable will be addressed with QA measures, 200+ words]"
 
-6. H2 BLOCK: "Project Management" or "Delivery Approach"
-   - Professional section header for implementation methodology
+BLOCK 17: H2 - "Project Management and Delivery"
+BLOCK 18: H3 - "Project Organization"
+BLOCK 19: TEXT - "[Team structure and management approach, 150+ words]"
+BLOCK 20: H3 - "Timeline and Risk Management"
+BLOCK 21: TEXT - "[Project timeline, milestones, and risk mitigation, 200+ words]"
 
-7. TEXT BLOCK: Detailed project management and delivery methodology
-   - Comprehensive project management approach
-   - Quality assurance and control measures
-   - Risk management and mitigation strategies
-   - Communication and coordination plans
-   - Performance monitoring and reporting
+FORMS: Generate one FORM block for each required form with appropriate fields.
 
-8. TEXT BLOCK: Professional submission email template
-   - Address appropriate contracting officers
-   - Professional government contracting language
-   - Include all required submission elements
+CRITICAL REQUIREMENTS FOR HIERARCHICAL STRUCTURE:
+- Each block contains ONLY text content (no mixing of titles and content)
+- Headers (H1, H2, H3) are separate blocks that contain children
+- Text blocks contain substantive content (200-500 words for major sections)
+- Maintain proper parent-child relationships in the hierarchy
+- Use appropriate depth levels (H1=0, H2=1, H3=2)
+- Address ALL contract requirements across the hierarchical structure
+- Follow strategic positioning throughout all content blocks
+- Generate forms as separate blocks with proper field structures
 
-CRITICAL REQUIREMENTS:
-- Generate detailed, substantive content (minimum 200-500 words per major text block)
-- Address ALL contract requirements and deliverables specifically
-- Include specific methodologies, timelines, and approaches
-- Pre-populate forms with known entity data
-- Maintain professional government contracting tone throughout
-- Follow strategic positioning and messaging guidelines precisely
-- Ensure response demonstrates capability and inspires confidence
-- Make the response submission-ready for government evaluation
-
-Generate 8-12 response blocks total, ensuring comprehensive coverage of all requirements. This response will be evaluated by government contracting professionals, so ensure it meets the highest standards of completeness, professionalism, and compliance.`;
+Generate a complete hierarchical structure with approximately 15-20 total blocks (including all headers and content). This atomized approach allows for better content organization and editing flexibility.`;
 
         const result = await generateObject({
             model: openai(MODEL),
@@ -160,6 +262,24 @@ Generate 8-12 response blocks total, ensuring comprehensive coverage of all requ
             prompt,
             schema: ProposalOutputSchema,
         });
+
+        // Build hierarchical structure from flat blocks
+        console.log('🔍 Original flat blocks:', result.object.responseBlocks.length, 'blocks');
+        console.log('🔍 Block types:', result.object.responseBlocks.map(b => `${b.type}: "${b.text.substring(0, 50)}..."`));
+        
+        const hierarchicalBlocks = buildHierarchicalStructure(result.object.responseBlocks);
+        
+        console.log('🏗️ Hierarchical structure created:');
+        console.log('- Root blocks:', hierarchicalBlocks.length);
+        if (hierarchicalBlocks[0]) {
+            console.log('- Root children:', hierarchicalBlocks[0].children?.length || 0);
+            hierarchicalBlocks[0].children?.forEach((child, i) => {
+                console.log(`  - Child ${i}: ${child.type} - "${child.text.substring(0, 30)}..." (${child.children?.length || 0} children)`);
+            });
+        }
+        
+        // Update the result with hierarchical structure
+        result.object.responseBlocks = hierarchicalBlocks;
 
         AgentLogger.logAgentSuccess(
             'writer',
@@ -171,7 +291,7 @@ Generate 8-12 response blocks total, ensuring comprehensive coverage of all requ
                     (block) => block.type === 'Form',
                 ).length,
                 totalContentLength: result.object.responseBlocks.reduce(
-                    (acc, block) => acc + block.content.length,
+                    (acc, block) => acc + block.text.length,
                     0,
                 ),
             },

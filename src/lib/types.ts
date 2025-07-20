@@ -1,19 +1,23 @@
 import { z } from 'zod';
 
-// Response Block System (Core Product Output)
+// Response Block System (Core Product Output) - Hierarchical Structure
 export type BlockType = 'H1' | 'H2' | 'H3' | 'Text' | 'Form';
 
 export interface ResponseBlock {
     id: string;
     type: BlockType;
-    title: string;
-    content: string;
+    text: string; // Simplified: only text, no separate title/content
     order: number;
     editable: boolean;
+    children?: ResponseBlock[]; // NEW: Hierarchical structure
+    depth?: number; // NEW: Track nesting level for UI rendering
     metadata?: {
         formFields?: FormField[];
         required?: boolean;
         instructions?: string;
+        // NEW: For migration compatibility
+        originalTitle?: string;
+        originalContent?: string;
     };
 }
 
@@ -68,15 +72,16 @@ export const ProposalOutputSchema = z.object({
             formContent: z.string(),
         }),
     ),
-    // New: Generated response blocks
+    // NEW: Hierarchical response blocks structure
     responseBlocks: z.array(
         z.object({
             id: z.string(),
             type: z.enum(['H1', 'H2', 'H3', 'Text', 'Form']),
-            title: z.string(),
-            content: z.string(),
+            text: z.string(), // Simplified: only text
             order: z.number(),
             editable: z.boolean(),
+            children: z.array(z.lazy(() => z.any())).optional(), // Recursive children
+            depth: z.number().optional(),
             metadata: z
                 .object({
                     formFields: z
@@ -101,6 +106,9 @@ export const ProposalOutputSchema = z.object({
                         .optional(),
                     required: z.boolean().optional(),
                     instructions: z.string().optional(),
+                    // For migration compatibility
+                    originalTitle: z.string().optional(),
+                    originalContent: z.string().optional(),
                 })
                 .optional(),
         }),
@@ -115,15 +123,16 @@ export const ReviewOutputSchema = z.object({
         submissionChecklist: z.array(z.string()),
     }),
     finalScore: z.number(),
-    // New: Final response with any adjustments
+    // NEW: Final hierarchical response blocks with adjustments
     finalResponseBlocks: z.array(
         z.object({
             id: z.string(),
             type: z.enum(['H1', 'H2', 'H3', 'Text', 'Form']),
-            title: z.string(),
-            content: z.string(),
+            text: z.string(), // Simplified: only text
             order: z.number(),
             editable: z.boolean(),
+            children: z.array(z.lazy(() => z.any())).optional(), // Recursive children
+            depth: z.number().optional(),
             metadata: z
                 .object({
                     formFields: z
@@ -148,6 +157,9 @@ export const ReviewOutputSchema = z.object({
                         .optional(),
                     required: z.boolean().optional(),
                     instructions: z.string().optional(),
+                    // For migration compatibility
+                    originalTitle: z.string().optional(),
+                    originalContent: z.string().optional(),
                 })
                 .optional(),
         }),
@@ -289,21 +301,23 @@ export interface Entity {
     entityStartDate: string;
 }
 
-// Utility functions for block management
+// Utility functions for block management - Updated for hierarchical structure
 export const createBlock = (
     type: BlockType,
-    title: string,
-    content: string,
+    text: string,
     order: number,
     editable: boolean = true,
+    children?: ResponseBlock[],
+    depth?: number,
     metadata?: ResponseBlock['metadata'],
 ): ResponseBlock => ({
     id: crypto.randomUUID(),
     type,
-    title,
-    content,
+    text,
     order,
     editable,
+    children,
+    depth,
     metadata,
 });
 
@@ -315,13 +329,70 @@ export const createFormBlock = (
 ): ResponseBlock => ({
     id: crypto.randomUUID(),
     type: 'Form',
-    title,
-    content: `Form with ${fields.length} fields`,
+    text: title, // Use title as text for forms
     order,
     editable: true,
     metadata: {
         formFields: fields,
         required: true,
         instructions,
+        originalTitle: title, // Keep for migration
     },
 });
+
+// NEW: Helper functions for hierarchical structure
+export const createHierarchicalBlock = (
+    type: BlockType,
+    text: string,
+    order: number,
+    children?: ResponseBlock[],
+    depth: number = 0,
+): ResponseBlock => {
+    return createBlock(type, text, order, true, children, depth);
+};
+
+export const addChildToBlock = (
+    parent: ResponseBlock,
+    child: ResponseBlock,
+): ResponseBlock => {
+    const updatedParent = { ...parent };
+    if (!updatedParent.children) {
+        updatedParent.children = [];
+    }
+    // Set child depth based on parent
+    child.depth = (parent.depth || 0) + 1;
+    updatedParent.children.push(child);
+    return updatedParent;
+};
+
+export const flattenBlocks = (blocks: ResponseBlock[]): ResponseBlock[] => {
+    const flattened: ResponseBlock[] = [];
+    
+    const flatten = (block: ResponseBlock) => {
+        flattened.push(block);
+        if (block.children) {
+            block.children.forEach(flatten);
+        }
+    };
+    
+    blocks.forEach(flatten);
+    return flattened;
+};
+
+// Migration helpers for legacy data
+export const migrateLegacyBlock = (legacyBlock: any): ResponseBlock => {
+    return {
+        id: legacyBlock.id || crypto.randomUUID(),
+        type: legacyBlock.type,
+        text: legacyBlock.title || legacyBlock.content || legacyBlock.text,
+        order: legacyBlock.order,
+        editable: legacyBlock.editable,
+        children: [],
+        depth: 0,
+        metadata: {
+            ...legacyBlock.metadata,
+            originalTitle: legacyBlock.title,
+            originalContent: legacyBlock.content,
+        },
+    };
+};

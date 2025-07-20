@@ -76,11 +76,17 @@ export async function generateProposalResponse(): Promise<GeneratedRFQResponse> 
             blocks: proposal.responseBlocks.map((block) => ({
                 id: block.id,
                 type: block.type as any,
-                title: block.title,
-                content: block.content,
+                text: block.text,
                 order: block.order,
                 editable: block.editable,
-                metadata: block.metadata,
+                children: block.children || [],
+                depth: block.depth || 0,
+                metadata: {
+                    ...block.metadata,
+                    // For migration: preserve old structure if it exists
+                    originalTitle: (block as any).title,
+                    originalContent: (block as any).content,
+                },
             })),
             agentInsights: {
                 dataAnalysis,
