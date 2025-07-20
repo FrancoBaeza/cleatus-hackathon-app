@@ -10,7 +10,8 @@ import {
   CheckCircle2, 
   Clock, 
   Zap,
-  AlertCircle 
+  AlertCircle,
+  Database 
 } from 'lucide-react';
 import { AgentProgress as AgentProgressType, AgentState } from '@/lib/types';
 
@@ -20,6 +21,7 @@ interface AgentProgressProps {
 }
 
 const agentIcons = {
+  dataAnalyzer: Database,
   analyzer: Search,
   strategist: Target,
   writer: PenTool,
@@ -53,7 +55,7 @@ const getStateBadge = (state: AgentState) => {
 };
 
 const calculateOverallProgress = (progress: AgentProgressType): number => {
-  const agents = ['analyzer', 'strategist', 'writer', 'reviewer'] as const;
+  const agents = ['dataAnalyzer', 'analyzer', 'strategist', 'writer'] as const;
   const completedCount = agents.filter(agent => progress[agent].state === 'completed').length;
   return (completedCount / agents.length) * 100;
 };
@@ -77,13 +79,16 @@ export default function AgentProgress({ progress, isGenerating }: AgentProgressP
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {(Object.entries(progress) as Array<[keyof AgentProgressType, AgentProgressType[keyof AgentProgressType]]>).map(([agentName, agentData], index) => {
-          const Icon = agentIcons[agentName];
-          const agentTitles = {
-            analyzer: 'Agent 1: Analyzer',
-            strategist: 'Agent 2: Strategist', 
-            writer: 'Agent 3: Writer',
-            reviewer: 'Agent 4: Reviewer'
+        {['dataAnalyzer', 'analyzer', 'strategist', 'writer'].map((agentName) => {
+          const agentData = progress[agentName as keyof AgentProgressType];
+          if (!agentData) return null;
+          
+          const Icon = agentIcons[agentName as keyof typeof agentIcons];
+          const agentTitles: Record<string, string> = {
+            dataAnalyzer: 'Agent 1: Data Analyzer',
+            analyzer: 'Agent 2: Strategic Analyzer',
+            strategist: 'Agent 3: Strategist', 
+            writer: 'Agent 4: Writer'
           };
           
           return (

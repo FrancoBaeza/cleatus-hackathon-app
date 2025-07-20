@@ -4,123 +4,208 @@ import { z } from 'zod';
 export type BlockType = 'H1' | 'H2' | 'H3' | 'Text' | 'Form';
 
 export interface ResponseBlock {
-  id: string;
-  type: BlockType;
-  title: string;
-  content: string;
-  order: number;
-  editable: boolean;
-  metadata?: {
-    formFields?: FormField[];
-    required?: boolean;
-    instructions?: string;
-  };
+    id: string;
+    type: BlockType;
+    title: string;
+    content: string;
+    order: number;
+    editable: boolean;
+    metadata?: {
+        formFields?: FormField[];
+        required?: boolean;
+        instructions?: string;
+    };
 }
 
 export interface FormField {
-  id: string;
-  label: string;
-  type: 'text' | 'email' | 'tel' | 'date' | 'textarea' | 'select';
-  value: string;
-  required: boolean;
-  options?: string[];
-  placeholder?: string;
+    id: string;
+    label: string;
+    type: 'text' | 'email' | 'tel' | 'date' | 'textarea' | 'select';
+    value: string;
+    required: boolean;
+    options?: string[];
+    placeholder?: string;
 }
 
 // Updated Agent Output Schemas - Now generate blocks
 export const AnalysisOutputSchema = z.object({
-  requirements: z.array(z.string()),
-  gaps: z.array(z.string()),
-  riskFactors: z.array(z.string()),
-  opportunities: z.array(z.string()),
-  complianceItems: z.array(z.string()),
-  // New: Strategic insights for other agents
-  insights: z.object({
-    naicsStrategy: z.string(),
-    competitiveAdvantage: z.string(),
-    riskMitigation: z.string(),
-  }),
+    requirements: z.array(z.string()),
+    gaps: z.array(z.string()),
+    riskFactors: z.array(z.string()),
+    opportunities: z.array(z.string()),
+    complianceItems: z.array(z.string()),
+    // New: Strategic insights for other agents
+    insights: z.object({
+        naicsStrategy: z.string(),
+        competitiveAdvantage: z.string(),
+        riskMitigation: z.string(),
+    }),
 });
 
 export const StrategyOutputSchema = z.object({
-  positioning: z.string(),
-  gapMitigation: z.string(),
-  valuePropositions: z.array(z.string()),
-  winProbability: z.number(),
-  pricingStrategy: z.string(),
-  // New: Content strategy for writer
-  contentStrategy: z.object({
-    keyMessages: z.array(z.string()),
-    toneGuidelines: z.string(),
-    structureRecommendations: z.string(),
-  }),
+    positioning: z.string(),
+    gapMitigation: z.string(),
+    valuePropositions: z.array(z.string()),
+    winProbability: z.number(),
+    pricingStrategy: z.string(),
+    // New: Content strategy for writer
+    contentStrategy: z.object({
+        keyMessages: z.array(z.string()),
+        toneGuidelines: z.string(),
+        structureRecommendations: z.string(),
+    }),
 });
 
 export const ProposalOutputSchema = z.object({
-  // Old fields for insights display
-  companyInfo: z.string(),
-  technicalResponse: z.string(),
-  narrative: z.string(),
-  pricingDetails: z.string(),
-  submissionForms: z.array(z.object({
-    formName: z.string(),
-    formContent: z.string(),
-  })),
-  // New: Generated response blocks
-  responseBlocks: z.array(z.object({
-    id: z.string(),
-    type: z.enum(['H1', 'H2', 'H3', 'Text', 'Form']),
-    title: z.string(),
-    content: z.string(),
-    order: z.number(),
-    editable: z.boolean(),
-    metadata: z.object({
-      formFields: z.array(z.object({
-        id: z.string(),
-        label: z.string(),
-        type: z.enum(['text', 'email', 'tel', 'date', 'textarea', 'select']),
-        value: z.string(),
-        required: z.boolean(),
-        options: z.array(z.string()).optional(),
-        placeholder: z.string().optional(),
-      })).optional(),
-      required: z.boolean().optional(),
-      instructions: z.string().optional(),
-    }).optional(),
-  })),
+    // Old fields for insights display
+    companyInfo: z.string(),
+    technicalResponse: z.string(),
+    narrative: z.string(),
+    pricingDetails: z.string(),
+    submissionForms: z.array(
+        z.object({
+            formName: z.string(),
+            formContent: z.string(),
+        }),
+    ),
+    // New: Generated response blocks
+    responseBlocks: z.array(
+        z.object({
+            id: z.string(),
+            type: z.enum(['H1', 'H2', 'H3', 'Text', 'Form']),
+            title: z.string(),
+            content: z.string(),
+            order: z.number(),
+            editable: z.boolean(),
+            metadata: z
+                .object({
+                    formFields: z
+                        .array(
+                            z.object({
+                                id: z.string(),
+                                label: z.string(),
+                                type: z.enum([
+                                    'text',
+                                    'email',
+                                    'tel',
+                                    'date',
+                                    'textarea',
+                                    'select',
+                                ]),
+                                value: z.string(),
+                                required: z.boolean(),
+                                options: z.array(z.string()).optional(),
+                                placeholder: z.string().optional(),
+                            }),
+                        )
+                        .optional(),
+                    required: z.boolean().optional(),
+                    instructions: z.string().optional(),
+                })
+                .optional(),
+        }),
+    ),
 });
 
 export const ReviewOutputSchema = z.object({
-  complianceCheck: z.array(z.string()),
-  submissionPackage: z.object({
-    emailTemplate: z.string(),
-    attachments: z.array(z.string()),
-    submissionChecklist: z.array(z.string()),
-  }),
-  finalScore: z.number(),
-  // New: Final response with any adjustments
-  finalResponseBlocks: z.array(z.object({
-    id: z.string(),
-    type: z.enum(['H1', 'H2', 'H3', 'Text', 'Form']),
-    title: z.string(),
-    content: z.string(),
-    order: z.number(),
-    editable: z.boolean(),
-    metadata: z.object({
-      formFields: z.array(z.object({
-        id: z.string(),
-        label: z.string(),
-        type: z.enum(['text', 'email', 'tel', 'date', 'textarea', 'select']),
-        value: z.string(),
-        required: z.boolean(),
-        options: z.array(z.string()).optional(),
-        placeholder: z.string().optional(),
-      })).optional(),
-      required: z.boolean().optional(),
-      instructions: z.string().optional(),
-    }).optional(),
-  })),
+    complianceCheck: z.array(z.string()),
+    submissionPackage: z.object({
+        emailTemplate: z.string(),
+        attachments: z.array(z.string()),
+        submissionChecklist: z.array(z.string()),
+    }),
+    finalScore: z.number(),
+    // New: Final response with any adjustments
+    finalResponseBlocks: z.array(
+        z.object({
+            id: z.string(),
+            type: z.enum(['H1', 'H2', 'H3', 'Text', 'Form']),
+            title: z.string(),
+            content: z.string(),
+            order: z.number(),
+            editable: z.boolean(),
+            metadata: z
+                .object({
+                    formFields: z
+                        .array(
+                            z.object({
+                                id: z.string(),
+                                label: z.string(),
+                                type: z.enum([
+                                    'text',
+                                    'email',
+                                    'tel',
+                                    'date',
+                                    'textarea',
+                                    'select',
+                                ]),
+                                value: z.string(),
+                                required: z.boolean(),
+                                options: z.array(z.string()).optional(),
+                                placeholder: z.string().optional(),
+                            }),
+                        )
+                        .optional(),
+                    required: z.boolean().optional(),
+                    instructions: z.string().optional(),
+                })
+                .optional(),
+        }),
+    ),
 });
+
+// NEW: Data Analysis Output - Generic structure for any contract/entity
+export const DataAnalysisOutputSchema = z.object({
+    contractInfo: z.object({
+        type: z.string().describe('Type of procurement (e.g., "Manufacturing", "Services", "Construction")'),
+        scope: z.string().describe('Brief scope description'),
+        keyRequirements: z.array(z.string()).describe('List of key requirements extracted from contract'),
+        deliverables: z.array(z.string()).describe('What needs to be delivered'),
+        locations: z.array(z.string()).describe('Delivery or performance locations'),
+        timeline: z.string().describe('Key dates and deadlines'),
+        setAsideType: z.string().optional().describe('Set-aside type if applicable (SDVOSB, Small Business, etc.)'),
+        specialRequirements: z.array(z.string()).describe('Special certifications, compliance, or unique requirements'),
+    }),
+    
+    entityInfo: z.object({
+        primaryCapability: z.string().describe('Primary business capability or industry focus'),
+        relevantExperience: z.array(z.string()).describe('Relevant capabilities for this contract'),
+        competitiveAdvantages: z.array(z.string()).describe('Key competitive advantages'),
+        businessType: z.string().describe('Business classification (Small, Large, SDVOSB, etc.)'),
+    }),
+    
+    gapAnalysis: z.object({
+        naicsAlignment: z.object({
+            required: z.string().describe('Required NAICS code'),
+            entityPrimary: z.string().describe('Entity primary NAICS code'),
+            isMatch: z.boolean().describe('Whether NAICS codes match'),
+            complianceApproach: z.string().describe('How to address NAICS gap if exists'),
+        }),
+        capabilityGaps: z.array(z.string()).describe('Capability or experience gaps'),
+        complianceGaps: z.array(z.string()).describe('Regulatory or certification gaps'),
+        riskFactors: z.array(z.string()).describe('Key risk factors for this bid'),
+    }),
+    
+    opportunityAssessment: z.object({
+        winFactors: z.array(z.string()).describe('Factors that increase win probability'),
+        competitivePositioning: z.string().describe('How to position against competitors'),
+        valueProposition: z.string().describe('Core value proposition for this opportunity'),
+        estimatedWinProbability: z.number().min(0).max(100).describe('Estimated win probability percentage'),
+    }),
+    
+    complianceRequirements: z.object({
+        requiredForms: z.array(z.object({
+            name: z.string(),
+            description: z.string(),
+            criticality: z.enum(['Required', 'Optional', 'Conditional']),
+        })).describe('Forms required for submission'),
+        certifications: z.array(z.string()).describe('Required certifications or registrations'),
+        submissionMethod: z.string().describe('How and where to submit the response'),
+        keyDeadlines: z.array(z.string()).describe('Critical deadlines to track'),
+    }),
+});
+
+export type DataAnalysisOutput = z.infer<typeof DataAnalysisOutputSchema>;
 
 // Inferred types
 export type AnalysisOutput = z.infer<typeof AnalysisOutputSchema>;
@@ -130,107 +215,113 @@ export type ReviewOutput = z.infer<typeof ReviewOutputSchema>;
 
 // Complete Generated Response (Final Product)
 export interface GeneratedRFQResponse {
-  metadata: {
-    rfqNumber: string;
-    companyName: string;
-    generatedAt: string;
-    lastModified: string;
-    version: number;
-  };
-  blocks: ResponseBlock[];
-  agentInsights: {
-    analysis: AnalysisOutput;
-    strategy: StrategyOutput;
-    proposal: ProposalOutput;
-    review: ReviewOutput;
-  };
-  submissionReady: boolean;
-  confidenceScore: number;
+    metadata: {
+        rfqNumber: string;
+        companyName: string;
+        generatedAt: string;
+        lastModified: string;
+        version: number;
+    };
+    blocks: ResponseBlock[];
+    agentInsights: {
+        dataAnalysis?: DataAnalysisOutput;
+        analysis: AnalysisOutput;
+        strategy: StrategyOutput;
+        proposal: ProposalOutput;
+        review: ReviewOutput | null;
+    };
+    submissionReady: boolean;
+    confidenceScore: number;
 }
 
 // Agent states (unchanged)
 export type AgentState = 'pending' | 'working' | 'completed' | 'error';
 
 export interface AgentProgress {
-  analyzer: {
-    state: AgentState;
-    message: string;
-    result?: AnalysisOutput;
-  };
-  strategist: {
-    state: AgentState;
-    message: string;
-    result?: StrategyOutput;
-  };
-  writer: {
-    state: AgentState;
-    message: string;
-    result?: ProposalOutput;
-  };
-  reviewer: {
-    state: AgentState;
-    message: string;
-    result?: ReviewOutput;
-  };
+    dataAnalyzer: {
+        state: AgentState;
+        message: string;
+        result?: DataAnalysisOutput;
+    };
+    analyzer: {
+        state: AgentState;
+        message: string;
+        result?: AnalysisOutput;
+    };
+    strategist: {
+        state: AgentState;
+        message: string;
+        result?: StrategyOutput;
+    };
+    writer: {
+        state: AgentState;
+        message: string;
+        result?: ProposalOutput;
+    };
+    reviewer?: {
+        state: AgentState;
+        message: string;
+        result?: ReviewOutput;
+    };
 }
 
 // Data types (unchanged)
 export interface Contract {
-  id: string;
-  title: string;
-  solicitationNumber: string;
-  agencyName: string;
-  naicsId: string;
-  deadlineDate: string;
-  description: string;
-  overview: string;
+    id: string;
+    title: string;
+    solicitationNumber: string;
+    agencyName: string;
+    naicsId: string;
+    deadlineDate: string;
+    description: string;
+    overview: string;
 }
 
 export interface Entity {
-  id: string;
-  businessName: string;
-  physicalAddress: string;
-  naicsCodes: Array<{
-    code: string;
-    name: string;
-  }>;
-  cageCode: string;
-  entityStartDate: string;
+    id: string;
+    businessName: string;
+    physicalAddress: string;
+    naicsCodes: Array<{
+        code: string;
+        name: string;
+    }>;
+    cageCode: string;
+    entityStartDate: string;
 }
 
 // Utility functions for block management
 export const createBlock = (
-  type: BlockType,
-  title: string,
-  content: string,
-  order: number,
-  editable: boolean = true,
-  metadata?: ResponseBlock['metadata']
+    type: BlockType,
+    title: string,
+    content: string,
+    order: number,
+    editable: boolean = true,
+    metadata?: ResponseBlock['metadata'],
 ): ResponseBlock => ({
-  id: crypto.randomUUID(),
-  type,
-  title,
-  content,
-  order,
-  editable,
-  metadata,
+    id: crypto.randomUUID(),
+    type,
+    title,
+    content,
+    order,
+    editable,
+    metadata,
 });
 
 export const createFormBlock = (
-  title: string,
-  fields: FormField[],
-  order: number,
-  instructions?: string
+    title: string,
+    fields: FormField[],
+    order: number,
+    instructions?: string,
 ): ResponseBlock => ({
-  id: crypto.randomUUID(),
-  type: 'Form',
-  title,
-  content: `Form with ${fields.length} fields`,
-  order,
-  editable: true,
-  metadata: {
-    formFields: fields,
-    required: true,
-    instructions,
-  },
-}); 
+    id: crypto.randomUUID(),
+    type: 'Form',
+    title,
+    content: `Form with ${fields.length} fields`,
+    order,
+    editable: true,
+    metadata: {
+        formFields: fields,
+        required: true,
+        instructions,
+    },
+});

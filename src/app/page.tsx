@@ -13,19 +13,19 @@ import {
     AlertCircle,
     Eye,
     Settings,
-    Users
+    Users,
 } from 'lucide-react';
 import AgentProgress from '@/components/AgentProgress';
 import AgentResults from '@/components/AgentResults';
 import BlockEditor from '@/components/BlockEditor';
-import { 
+import {
     AgentProgress as AgentProgressType,
     AnalysisOutput,
-    StrategyOutput, 
+    StrategyOutput,
     ProposalOutput,
     ReviewOutput,
     GeneratedRFQResponse,
-    ResponseBlock
+    ResponseBlock,
 } from '@/lib/types';
 import { generateProposalResponse } from '@/lib/agents';
 
@@ -50,20 +50,19 @@ export default function Home() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [agentProgress, setAgentProgress] = useState<AgentProgressType>({
-        analyzer: { state: 'pending', message: 'Waiting to start analysis...' },
+        dataAnalyzer: { state: 'pending', message: 'Waiting to start data processing...' },
+        analyzer: { state: 'pending', message: 'Waiting for data analysis...' },
         strategist: {
             state: 'pending',
-            message: 'Waiting for analysis results...',
+            message: 'Waiting for strategic analysis...',
         },
         writer: { state: 'pending', message: 'Waiting for strategy...' },
-        reviewer: {
-            state: 'pending',
-            message: 'Waiting for proposal draft...',
-        },
     });
-    
+
     // New: Complete RFQ Response with blocks and insights
-    const [rfqResponse, setRfqResponse] = useState<GeneratedRFQResponse | null>(null);
+    const [rfqResponse, setRfqResponse] = useState<GeneratedRFQResponse | null>(
+        null,
+    );
     const [responseBlocks, setResponseBlocks] = useState<ResponseBlock[]>([]);
 
     const generateResponse = async () => {
@@ -71,30 +70,47 @@ export default function Home() {
         setError(null);
         setRfqResponse(null);
         setResponseBlocks([]);
-        
+
         // Reset progress
         setAgentProgress({
-            analyzer: {
+            dataAnalyzer: {
                 state: 'working',
-                message: 'Analyzing RFQ requirements and identifying gaps...',
+                message: 'Processing raw contract and entity data...',
+            },
+            analyzer: {
+                state: 'pending',
+                message: 'Waiting for data processing...',
             },
             strategist: {
                 state: 'pending',
-                message: 'Waiting for analysis results...',
+                message: 'Waiting for strategic analysis...',
             },
             writer: { state: 'pending', message: 'Waiting for strategy...' },
-            reviewer: {
-                state: 'pending',
-                message: 'Waiting for proposal draft...',
-            },
         });
-        
+
         try {
             // Call the real server action orchestrator
             const result = await generateProposalResponse();
-            
+
             // Update UI as each agent completes (simulated since server action runs all at once)
             // Agent 1 completed
+            // Data Analyzer completed - Start strategic analyzer
+            setTimeout(() => {
+                setAgentProgress((prev) => ({
+                    ...prev,
+                    dataAnalyzer: {
+                        state: 'completed',
+                        message: `Data processed - Contract type: ${result.agentInsights.dataAnalysis?.contractInfo.type || 'Unknown'}`,
+                        result: result.agentInsights.dataAnalysis,
+                    },
+                    analyzer: {
+                        state: 'working',
+                        message: 'Analyzing strategic insights and gaps...',
+                    },
+                }));
+            }, 1000);
+
+            // Strategic Analyzer completed - Start strategist
             setTimeout(() => {
                 setAgentProgress((prev) => ({
                     ...prev,
@@ -105,62 +121,50 @@ export default function Home() {
                     },
                     strategist: {
                         state: 'working',
-                        message:
-                            'Developing partnership strategy for NAICS gap...',
+                        message: 'Developing comprehensive bid strategy...',
                     },
                 }));
-            }, 1000);
+            }, 2500);
 
-            // Agent 2 completed  
+            // Strategist completed - Start writer
             setTimeout(() => {
                 setAgentProgress((prev) => ({
                     ...prev,
                     strategist: {
                         state: 'completed',
-                        message: `Partnership strategy developed - ${result.agentInsights.strategy.winProbability}% win probability`,
+                        message: `Strategy developed - ${result.agentInsights.strategy.winProbability}% win probability`,
                         result: result.agentInsights.strategy,
                     },
                     writer: {
                         state: 'working',
-                        message: 'Generating RFQ response blocks...',
+                        message: 'Generating comprehensive response blocks...',
                     },
                 }));
-            }, 3000);
+            }, 4000);
 
-            // Agent 3 completed
+            // Writer completed - FINAL AGENT  
             setTimeout(() => {
                 setAgentProgress((prev) => ({
                     ...prev,
                     writer: {
                         state: 'completed',
-                        message: `Generated ${result.blocks.length} response blocks with ${result.blocks.filter(b => b.type === 'Form').length} forms`,
+                        message: `Generated ${
+                            result.blocks.length
+                        } response blocks with ${
+                            result.blocks.filter((b) => b.type === 'Form')
+                                .length
+                        } forms - READY FOR SUBMISSION`,
                         result: result.agentInsights.proposal,
                     },
-                    reviewer: {
-                        state: 'working',
-                        message:
-                            'Reviewing compliance and finalizing submission package...',
-                    },
                 }));
-            }, 5000);
 
-            // Agent 4 completed - Set final results
-            setTimeout(() => {
-                setAgentProgress((prev) => ({
-                    ...prev,
-                    reviewer: {
-                        state: 'completed',
-                        message: `Compliance verified - ${result.confidenceScore}% submission confidence`,
-                        result: result.agentInsights.review,
-                    },
-                }));
-                
+                console.log('Setting RFQ Response:', result);
+
                 // Set the complete RFQ response
                 setRfqResponse(result);
                 setResponseBlocks(result.blocks);
                 setIsGenerating(false);
-            }, 6500);
-            
+            }, 5500);
         } catch (error) {
             console.error('Generation failed:', error);
             setError(
@@ -189,7 +193,7 @@ export default function Home() {
                 }
                 return prev;
             });
-            
+
             setIsGenerating(false);
         }
     };
@@ -210,7 +214,9 @@ export default function Home() {
                         </h1>
                     </div>
                     <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                        Multi-Agent RFQ Response Generator - 4 AI specialists collaborate to create editable, professional government proposals
+                        Multi-Agent RFQ Response Generator - 4 AI specialists
+                        collaborate to create editable, professional government
+                        proposals
                     </p>
                     <div className="flex items-center justify-center space-x-4">
                         <Badge variant="secondary" className="text-sm">
@@ -252,10 +258,12 @@ export default function Home() {
                             <span>Generate RFQ Response</span>
                         </CardTitle>
                         <p className="text-gray-600">
-                            Watch 4 AI agents analyze, strategize, write, and review a complete, editable government proposal response.
+                            Watch 4 AI agents analyze, strategize, write, and
+                            review a complete, editable government proposal
+                            response.
                         </p>
                     </CardHeader>
-                    
+
                     <CardContent className="space-y-6">
                         {/* RFQ Selection */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -317,7 +325,7 @@ export default function Home() {
 
                         {/* Generate Button */}
                         <div className="text-center">
-                            <Button 
+                            <Button
                                 onClick={generateResponse}
                                 disabled={isGenerating}
                                 size="lg"
@@ -370,22 +378,39 @@ export default function Home() {
                                             Generated RFQ Response
                                         </CardTitle>
                                         <div className="flex items-center space-x-2">
-                                            <Badge variant="secondary" className={`${rfqResponse.submissionReady ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                                {rfqResponse.confidenceScore}% Confidence
+                                            <Badge
+                                                variant="secondary"
+                                                className={`${
+                                                    rfqResponse.submissionReady
+                                                        ? 'bg-green-100 text-green-800'
+                                                        : 'bg-yellow-100 text-yellow-800'
+                                                }`}
+                                            >
+                                                {rfqResponse.confidenceScore}%
+                                                Confidence
                                             </Badge>
                                             {rfqResponse.submissionReady && (
-                                                <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                                                <Badge
+                                                    variant="secondary"
+                                                    className="bg-blue-100 text-blue-800"
+                                                >
                                                     ✅ Submission Ready
                                                 </Badge>
                                             )}
                                         </div>
                                     </div>
                                     <TabsList className="grid w-full grid-cols-2 mt-4">
-                                        <TabsTrigger value="response" className="flex items-center space-x-2">
+                                        <TabsTrigger
+                                            value="response"
+                                            className="flex items-center space-x-2"
+                                        >
                                             <Eye className="w-4 h-4" />
                                             <span>RFQ Response Editor</span>
                                         </TabsTrigger>
-                                        <TabsTrigger value="insights" className="flex items-center space-x-2">
+                                        <TabsTrigger
+                                            value="insights"
+                                            className="flex items-center space-x-2"
+                                        >
                                             <Users className="w-4 h-4" />
                                             <span>Agent Insights</span>
                                         </TabsTrigger>
@@ -393,22 +418,47 @@ export default function Home() {
                                 </CardHeader>
 
                                 <CardContent>
-                                    <TabsContent value="response" className="mt-6">
+                                    <TabsContent
+                                        value="response"
+                                        className="mt-6"
+                                    >
                                         <BlockEditor
                                             blocks={responseBlocks}
                                             onBlocksChange={setResponseBlocks}
-                                            rfqNumber={rfqResponse.metadata.rfqNumber}
-                                            companyName={rfqResponse.metadata.companyName}
-                                            confidenceScore={rfqResponse.confidenceScore}
+                                            rfqNumber={
+                                                rfqResponse.metadata.rfqNumber
+                                            }
+                                            companyName={
+                                                rfqResponse.metadata.companyName
+                                            }
+                                            confidenceScore={
+                                                rfqResponse.confidenceScore
+                                            }
                                         />
                                     </TabsContent>
 
-                                    <TabsContent value="insights" className="mt-6">
-                                        <AgentResults 
-                                            analysis={rfqResponse.agentInsights.analysis}
-                                            strategy={rfqResponse.agentInsights.strategy} 
-                                            proposal={rfqResponse.agentInsights.proposal}
-                                            review={rfqResponse.agentInsights.review}
+                                    <TabsContent
+                                        value="insights"
+                                        className="mt-6"
+                                    >
+                                        <AgentResults
+                                            dataAnalysis={
+                                                rfqResponse.agentInsights
+                                                    .dataAnalysis
+                                            }
+                                            analysis={
+                                                rfqResponse.agentInsights
+                                                    .analysis
+                                            }
+                                            strategy={
+                                                rfqResponse.agentInsights
+                                                    .strategy
+                                            }
+                                            proposal={
+                                                rfqResponse.agentInsights
+                                                    .proposal
+                                            }
+                                            review={undefined}
                                         />
                                     </TabsContent>
                                 </CardContent>

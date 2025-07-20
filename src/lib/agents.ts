@@ -2,387 +2,558 @@
 
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
-import { 
-  AnalysisOutputSchema, 
-  StrategyOutputSchema, 
-  ProposalOutputSchema, 
-  ReviewOutputSchema,
-  type AnalysisOutput,
-  type StrategyOutput,
-  type ProposalOutput,
-  type ReviewOutput,
-  type GeneratedRFQResponse,
-  createBlock,
-  createFormBlock
+import {
+    AnalysisOutputSchema,
+    StrategyOutputSchema,
+    ProposalOutputSchema,
+    DataAnalysisOutputSchema,
+    type AnalysisOutput,
+    type StrategyOutput,
+    type ProposalOutput,
+    type DataAnalysisOutput,
+    type GeneratedRFQResponse,
 } from './types';
-import { 
-  getContractData, 
-  getEntityData, 
-  getContractSummary, 
-  getEntitySummary,
-  extractContractRequirements,
-  identifyNAICSGaps
-} from './data';
 import { AgentLogger } from './logger';
+import { detailedLogger } from './agent-logger';
 
-// Agent 1: Analyzer - Strategic insights for team collaboration
-export async function runAnalyzerAgent(): Promise<AnalysisOutput> {
-  const startTime = AgentLogger.logAgentStart('analyzer', 'RFQ Analysis & Strategic Insights Generation');
-  
-  try {
-    const contract = getContractData();
-    const entity = getEntityData();
-    
-    const contractSummary = getContractSummary(contract);
-    const entitySummary = getEntitySummary(entity);
-    
-    // Pre-analysis using our domain logic
-    const baseRequirements = extractContractRequirements(contract);
-    const baseGaps = identifyNAICSGaps(entity, contract.naicsId);
-    
-    const prompt = `You are the lead analyst for a government contracting team. Your job is to analyze this RFQ and provide strategic insights that your teammates (Strategist, Writer, and Reviewer) will use to create a winning RFQ response.
+// Use GPT-4 for better reasoning
+const MODEL = "gpt-4.1";
 
-CONTRACT TO ANALYZE:
-${contractSummary}
+// NEW: Data Analyzer Agent - Processes raw JSON data to extract structured information
+export async function runDataAnalyzerAgent(contractJson: any, entityJson: any): Promise<DataAnalysisOutput> {
+    const startTime = AgentLogger.logAgentStart(
+        'data-analyzer',
+        'Raw Data Processing & Structure Extraction',
+    );
 
-BIDDING COMPANY:
-${entitySummary}
+    const { executionId, startTime: detailedStartTime } = detailedLogger.logAgentStart('data-analyzer');
 
-INITIAL FINDINGS:
-- Requirements Identified: ${baseRequirements.join('; ')}
-- NAICS Gaps Found: ${baseGaps.join('; ')}
+    try {
+        const prompt = `You are analyzing raw contract and entity data to extract structured information for RFQ response generation. Process the data thoroughly and extract key insights.
 
-YOUR ANALYSIS MUST PROVIDE:
-1. Complete requirements list (what the RFQ asks for)
-2. Critical gaps (especially NAICS 236220 vs 337127 mismatch)
-3. Risk factors (timeline, competition, delivery challenges)
-4. Strategic opportunities (small business set-aside, delivery expertise)
-5. Compliance requirements (forms, certifications needed)
+RAW CONTRACT DATA:
+${JSON.stringify(contractJson, null, 2)}
 
-STRATEGIC INSIGHTS FOR YOUR TEAM:
-- NAICS Strategy: How should we handle the construction vs manufacturing gap?
-- Competitive Advantage: What makes us uniquely qualified despite the gaps?
-- Risk Mitigation: How do we address the biggest concerns?
+RAW ENTITY DATA:
+${JSON.stringify(entityJson, null, 2)}
 
-FOCUS: This is an Air Force RFQ for 8 bleacher systems. We need 100% SDVOSB compliance, and delivery to Texas. The deadline is July 21, 2025.
+EXTRACT AND STRUCTURE THE FOLLOWING:
 
-Provide analysis that helps your team create a professional, compliant, winning RFQ response.`;
+1. CONTRACT ANALYSIS:
+   - Procurement type and scope
+   - Key requirements and deliverables
+   - Performance locations
+   - Timeline and deadlines
+   - Set-aside type if applicable
+   - Special requirements
 
-    const result = await generateObject({
-      model: openai('gpt-4'),
-      system: 'You are an expert government contracting analyst leading a response team. Provide strategic insights that enable your teammates to create a winning RFQ response. Focus on actionable intelligence.',
-      prompt,
-      schema: AnalysisOutputSchema,
-    });
+2. ENTITY ASSESSMENT:
+   - Primary business capability
+   - Relevant experience for this contract
+   - Competitive advantages
+   - Business classification
 
-    AgentLogger.logAgentSuccess('analyzer', 'RFQ Analysis & Strategic Insights Generation', startTime, {
-      requirementsCount: result.object.requirements.length,
-      gapsCount: result.object.gaps.length,
-      insightsGenerated: Object.keys(result.object.insights).length
-    });
+3. GAP ANALYSIS:
+   - NAICS code alignment (required vs entity primary)
+   - Capability gaps
+   - Compliance gaps
+   - Risk factors
 
-    return result.object;
-  } catch (error) {
-    AgentLogger.logAgentError('analyzer', 'RFQ Analysis & Strategic Insights Generation', startTime, error);
-    throw new Error(`Analyzer Agent failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
+4. OPPORTUNITY ASSESSMENT:
+   - Win factors
+   - Competitive positioning strategy
+   - Value proposition
+   - Estimated win probability
+
+5. COMPLIANCE REQUIREMENTS:
+   - Required forms for submission
+   - Certifications needed
+   - Submission method and deadlines
+
+Be thorough and extract ALL relevant information from the raw data. This structured output will be used by other agents to generate the RFQ response.`;
+
+        const result = await generateObject({
+            model: openai(MODEL),
+            system: 'You are an expert data analyst specializing in government contracts. Extract comprehensive, structured information from raw contract and entity data to enable automated RFQ response generation.',
+            prompt,
+            schema: DataAnalysisOutputSchema,
+        });
+
+        AgentLogger.logAgentSuccess(
+            'data-analyzer',
+            'Raw Data Processing & Structure Extraction',
+            startTime,
+            {
+                contractType: result.object.contractInfo.type,
+                requirementsCount: result.object.contractInfo.keyRequirements.length,
+                naicsMatch: result.object.gapAnalysis.naicsAlignment.isMatch,
+                winProbability: result.object.opportunityAssessment.estimatedWinProbability,
+            },
+        );
+
+        detailedLogger.logAgentSuccess(
+            'data-analyzer',
+            executionId,
+            detailedStartTime,
+            result.object,
+            {
+                modelUsed: MODEL,
+                promptLength: prompt.length
+            }
+        );
+
+        return result.object;
+    } catch (error) {
+        AgentLogger.logAgentError(
+            'data-analyzer',
+            'Raw Data Processing & Structure Extraction',
+            startTime,
+            error,
+        );
+
+        detailedLogger.logAgentError(
+            'data-analyzer',
+            executionId,
+            detailedStartTime,
+            error,
+            {
+                modelUsed: MODEL,
+                promptLength: 0
+            }
+        );
+
+        throw new Error(
+            `Data Analyzer Agent failed: ${
+                error instanceof Error ? error.message : 'Unknown error'
+            }`,
+        );
+    }
 }
 
-// Agent 2: Strategist - Content strategy and positioning for Writer
-export async function runStrategistAgent(analysis: AnalysisOutput): Promise<StrategyOutput> {
-  const startTime = AgentLogger.logAgentStart('strategist', 'Response Strategy & Content Guidelines', {
-    inputGaps: analysis.gaps.length,
-    inputInsights: Object.keys(analysis.insights).length
-  });
-  
-  try {
-    const contract = getContractData();
-    const entity = getEntityData();
-    
-    const prompt = `You are the bid strategist working with your team to create a winning RFQ response. The Analyzer has provided insights, and now you need to develop the strategy and content guidelines for the Writer.
+// Agent 1: Analyzer - Strategic insights based on structured data
+export async function runAnalyzerAgent(dataAnalysis: DataAnalysisOutput): Promise<AnalysisOutput> {
+    const startTime = AgentLogger.logAgentStart(
+        'analyzer',
+        'Strategic Analysis & Insights Generation',
+    );
 
-ANALYST'S FINDINGS:
+    const { executionId, startTime: detailedStartTime } = detailedLogger.logAgentStart('analyzer');
+
+    try {
+        const prompt = `You are conducting strategic analysis for an RFQ response. Based on the structured data analysis, provide strategic insights for the response team.
+
+STRUCTURED DATA ANALYSIS:
+Contract Type: ${dataAnalysis.contractInfo.type}
+Scope: ${dataAnalysis.contractInfo.scope}
+Key Requirements: ${dataAnalysis.contractInfo.keyRequirements.join('; ')}
+Deliverables: ${dataAnalysis.contractInfo.deliverables.join('; ')}
+Performance Locations: ${dataAnalysis.contractInfo.locations.join('; ')}
+Timeline: ${dataAnalysis.contractInfo.timeline}
+Set-Aside: ${dataAnalysis.contractInfo.setAsideType || 'Not specified'}
+
+Entity Primary Capability: ${dataAnalysis.entityInfo.primaryCapability}
+Relevant Experience: ${dataAnalysis.entityInfo.relevantExperience.join('; ')}
+Business Type: ${dataAnalysis.entityInfo.businessType}
+
+NAICS Alignment: Required ${dataAnalysis.gapAnalysis.naicsAlignment.required} vs Entity ${dataAnalysis.gapAnalysis.naicsAlignment.entityPrimary} (Match: ${dataAnalysis.gapAnalysis.naicsAlignment.isMatch})
+Capability Gaps: ${dataAnalysis.gapAnalysis.capabilityGaps.join('; ')}
+Risk Factors: ${dataAnalysis.gapAnalysis.riskFactors.join('; ')}
+
+Win Factors: ${dataAnalysis.opportunityAssessment.winFactors.join('; ')}
+Estimated Win Probability: ${dataAnalysis.opportunityAssessment.estimatedWinProbability}%
+
+PROVIDE STRATEGIC ANALYSIS:
+
+1. REQUIREMENTS: Comprehensive list of what the RFQ asks for
+2. GAPS: Critical gaps between requirements and entity capabilities  
+3. RISK FACTORS: Key risks that could impact bid success
+4. OPPORTUNITIES: Strategic opportunities to leverage
+5. COMPLIANCE ITEMS: All compliance requirements to address
+6. STRATEGIC INSIGHTS:
+   - NAICS Strategy: How to address NAICS alignment issues
+   - Competitive Advantage: How to position entity strengths
+   - Risk Mitigation: How to address key risks
+
+Focus on actionable insights that enable the team to create a winning response.`;
+
+        const result = await generateObject({
+            model: openai(MODEL),
+            system: 'You are an expert government contracting analyst. Provide strategic insights that enable your team to create a winning RFQ response based on structured data analysis.',
+            prompt,
+            schema: AnalysisOutputSchema,
+        });
+
+        AgentLogger.logAgentSuccess(
+            'analyzer',
+            'Strategic Analysis & Insights Generation',
+            startTime,
+            {
+                requirementsCount: result.object.requirements.length,
+                gapsCount: result.object.gaps.length,
+                insightsGenerated: Object.keys(result.object.insights).length,
+            },
+        );
+
+        detailedLogger.logAgentSuccess(
+            'analyzer',
+            executionId,
+            detailedStartTime,
+            result.object,
+            {
+                modelUsed: MODEL,
+                promptLength: prompt.length
+            }
+        );
+
+        return result.object;
+    } catch (error) {
+        AgentLogger.logAgentError(
+            'analyzer',
+            'Strategic Analysis & Insights Generation',
+            startTime,
+            error,
+        );
+
+        detailedLogger.logAgentError(
+            'analyzer',
+            executionId,
+            detailedStartTime,
+            error,
+            {
+                modelUsed: MODEL,
+                promptLength: 0
+            }
+        );
+
+        throw new Error(
+            `Analyzer Agent failed: ${
+                error instanceof Error ? error.message : 'Unknown error'
+            }`,
+        );
+    }
+}
+
+// Agent 2: Strategist - Content strategy and positioning
+export async function runStrategistAgent(
+    dataAnalysis: DataAnalysisOutput,
+    analysis: AnalysisOutput,
+): Promise<StrategyOutput> {
+    const startTime = AgentLogger.logAgentStart(
+        'strategist',
+        'Response Strategy & Content Guidelines',
+        {
+            inputGaps: analysis.gaps.length,
+            winProbability: dataAnalysis.opportunityAssessment.estimatedWinProbability,
+        },
+    );
+
+    const { executionId, startTime: detailedStartTime } = detailedLogger.logAgentStart(
+        'strategist', 
+        { dataAnalysisInput: dataAnalysis, analysisInput: analysis }
+    );
+
+    try {
+        const prompt = `You are developing the bid strategy for this RFQ response. Based on the data analysis and strategic insights, create a comprehensive strategy.
+
+DATA ANALYSIS CONTEXT:
+Contract: ${dataAnalysis.contractInfo.type} - ${dataAnalysis.contractInfo.scope}
+Entity: ${dataAnalysis.entityInfo.primaryCapability} (${dataAnalysis.entityInfo.businessType})
+Value Proposition: ${dataAnalysis.opportunityAssessment.valueProposition}
+Competitive Positioning: ${dataAnalysis.opportunityAssessment.competitivePositioning}
+Win Probability: ${dataAnalysis.opportunityAssessment.estimatedWinProbability}%
+
+STRATEGIC ANALYSIS:
 Requirements: ${analysis.requirements.join('; ')}
 Critical Gaps: ${analysis.gaps.join('; ')}
 Opportunities: ${analysis.opportunities.join('; ')}
+Risk Factors: ${analysis.riskFactors.join('; ')}
 
-ANALYST'S STRATEGIC INSIGHTS:
+STRATEGIC INSIGHTS:
 - NAICS Strategy: ${analysis.insights.naicsStrategy}
 - Competitive Advantage: ${analysis.insights.competitiveAdvantage}
 - Risk Mitigation: ${analysis.insights.riskMitigation}
 
-CONTRACT CONTEXT:
-RFQ: ${contract.solicitationNumber} - ${contract.title}
-Agency: ${contract.agencyName}
-Company: ${entity.businessName}
+DEVELOP COMPREHENSIVE STRATEGY:
 
-YOUR STRATEGY DELIVERABLES:
-1. Positioning statement (how we present ourselves)
-2. Gap mitigation approach (especially NAICS manufacturing issue)
-3. Value propositions (why choose us over competitors)
-4. Win probability assessment (realistic 0-100%)
-5. Pricing strategy approach
+1. POSITIONING: How to present the entity for this specific opportunity
+2. GAP MITIGATION: Specific approach to address identified gaps
+3. VALUE PROPOSITIONS: Key value propositions that differentiate from competitors
+4. WIN PROBABILITY: Realistic assessment based on analysis
+5. PRICING STRATEGY: High-level approach to pricing
 
 CONTENT STRATEGY FOR WRITER:
 - Key messages to emphasize throughout response
-- Tone guidelines (professional government contracting style)
-- Structure recommendations (how to organize the response blocks)
+- Tone guidelines appropriate for this procurement type
+- Structure recommendations for response organization
 
-REMEMBER: This RFQ requires:
-- Basic company information form
-- Technical specifications with pictures/drawings
-- Two financial forms (Attachments 2 & 3)
-- Email submission to two Air Force contacts
+Your strategy should transform challenges into advantages and position the entity as the best choice for this contract.`;
 
-Your strategy should position us as the best choice despite the NAICS gap, leveraging our construction expertise and partnership approach.`;
+        const result = await generateObject({
+            model: openai(MODEL),
+            system: 'You are an expert bid strategist. Develop winning positioning and detailed content strategy that maximizes the chance of RFQ success.',
+            prompt,
+            schema: StrategyOutputSchema,
+        });
 
-    const result = await generateObject({
-      model: openai('gpt-4'),
-      system: 'You are an expert bid strategist. Develop winning positioning and detailed content strategy that transforms challenges into advantages. Your output guides the Writer in creating the actual RFQ response.',
-      prompt,
-      schema: StrategyOutputSchema,
-    });
+        AgentLogger.logAgentSuccess(
+            'strategist',
+            'Response Strategy & Content Guidelines',
+            startTime,
+            {
+                winProbability: result.object.winProbability,
+                valuePropsCount: result.object.valuePropositions.length,
+                contentStrategyItems: Object.keys(result.object.contentStrategy).length,
+            },
+        );
 
-    AgentLogger.logAgentSuccess('strategist', 'Response Strategy & Content Guidelines', startTime, {
-      winProbability: result.object.winProbability,
-      valuePropsCount: result.object.valuePropositions.length,
-      contentStrategyItems: Object.keys(result.object.contentStrategy).length
-    });
+        detailedLogger.logAgentSuccess(
+            'strategist',
+            executionId,
+            detailedStartTime,
+            result.object,
+            {
+                modelUsed: MODEL,
+                promptLength: prompt.length
+            }
+        );
 
-    return result.object;
-  } catch (error) {
-    AgentLogger.logAgentError('strategist', 'Response Strategy & Content Guidelines', startTime, error);
-    throw new Error(`Strategist Agent failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
+        return result.object;
+    } catch (error) {
+        AgentLogger.logAgentError(
+            'strategist',
+            'Response Strategy & Content Guidelines',
+            startTime,
+            error,
+        );
+
+        detailedLogger.logAgentError(
+            'strategist',
+            executionId,
+            detailedStartTime,
+            error,
+            {
+                modelUsed: MODEL,
+                promptLength: 0
+            }
+        );
+
+        throw new Error(
+            `Strategist Agent failed: ${
+                error instanceof Error ? error.message : 'Unknown error'
+            }`,
+        );
+    }
 }
 
 // Agent 3: Writer - Generate the actual RFQ response blocks
-export async function runWriterAgent(analysis: AnalysisOutput, strategy: StrategyOutput): Promise<ProposalOutput> {
-  const startTime = AgentLogger.logAgentStart('writer', 'RFQ Response Block Generation', {
-    strategyWinProb: strategy.winProbability,
-    requirementsCount: analysis.requirements.length
-  });
-  
-  try {
-    const contract = getContractData();
-    const entity = getEntityData();
-    
-    const prompt = `You are the response writer creating the actual RFQ submission. Your teammates have analyzed the requirements and developed strategy. Now you must create the structured response blocks.
+export async function runWriterAgent(
+    dataAnalysis: DataAnalysisOutput,
+    analysis: AnalysisOutput,
+    strategy: StrategyOutput,
+): Promise<ProposalOutput> {
+    const startTime = AgentLogger.logAgentStart(
+        'writer',
+        'RFQ Response Block Generation',
+        {
+            strategyWinProb: strategy.winProbability,
+            requirementsCount: analysis.requirements.length,
+        },
+    );
 
-REQUIREMENTS TO ADDRESS:
-${analysis.requirements.join('\n')}
+    const { executionId, startTime: detailedStartTime } = detailedLogger.logAgentStart(
+        'writer', 
+        { dataAnalysisInput: dataAnalysis, analysisInput: analysis, strategyInput: strategy }
+    );
 
-STRATEGIC GUIDANCE:
+    try {
+        const prompt = `You are writing a comprehensive RFQ response. Generate detailed, professional response blocks based on the complete analysis and strategy.
+
+CONTRACT INFORMATION:
+Type: ${dataAnalysis.contractInfo.type}
+Scope: ${dataAnalysis.contractInfo.scope}
+Requirements: ${dataAnalysis.contractInfo.keyRequirements.join('; ')}
+Deliverables: ${dataAnalysis.contractInfo.deliverables.join('; ')}
+Locations: ${dataAnalysis.contractInfo.locations.join('; ')}
+Timeline: ${dataAnalysis.contractInfo.timeline}
+Submission Method: ${dataAnalysis.complianceRequirements.submissionMethod}
+
+ENTITY INFORMATION:
+Business Name: [Extract from data]
+Primary Capability: ${dataAnalysis.entityInfo.primaryCapability}
+Business Type: ${dataAnalysis.entityInfo.businessType}
+Relevant Experience: ${dataAnalysis.entityInfo.relevantExperience.join('; ')}
+
+STRATEGY CONTEXT:
 Positioning: ${strategy.positioning}
-Gap Mitigation: ${strategy.gapMitigation}
+Win Probability: ${strategy.winProbability}%
 Key Messages: ${strategy.contentStrategy.keyMessages.join('; ')}
-Tone Guidelines: ${strategy.contentStrategy.toneGuidelines}
+Value Propositions: ${strategy.valuePropositions.join('; ')}
 
-CONTRACT DETAILS:
-RFQ: ${contract.solicitationNumber} - ${contract.title}
-Agency: ${contract.agencyName}
-Deadline: ${new Date(contract.deadlineDate).toLocaleDateString()}
-Required NAICS: ${contract.naicsId}
+REQUIRED FORMS (generate exactly as specified):
+${dataAnalysis.complianceRequirements.requiredForms.map(form => `- ${form.name}: ${form.description} (${form.criticality})`).join('\n')}
 
-COMPANY INFORMATION:
-${getEntitySummary(entity)}
+CREATE COMPREHENSIVE RESPONSE BLOCKS:
 
-CREATE STRUCTURED RESPONSE BLOCKS FOR:
+1. H1 BLOCK: Professional title for the RFQ response
+2. H2 BLOCK: "Company Information" - Detailed company overview
+3. FORM BLOCKS: Generate forms exactly as specified in compliance requirements
+4. H2 BLOCK: "Technical Approach" or equivalent for this contract type
+5. TEXT BLOCK: Detailed technical response addressing all requirements and deliverables
+6. H2 BLOCK: "Project Management" or "Delivery Approach"
+7. TEXT BLOCK: Detailed project management and delivery methodology
+8. TEXT BLOCK: Professional submission email template
 
-1. H1 BLOCK: "RFQ Response - FA301625Q0050 Bleacher Seating Systems"
+REQUIREMENTS:
+- Generate detailed, substantive content (not superficial)
+- Address ALL contract requirements and deliverables
+- Include specific methodologies, timelines, and approaches
+- Pre-populate forms with known entity data
+- Maintain professional government contracting tone
+- Ensure response is submission-ready
 
-2. H2 BLOCK: "Company Information"
+Generate between 8-12 response blocks total, ensuring comprehensive coverage of all requirements.`;
 
-3. FORM BLOCK: Basic Quote Information (per RFQ requirements)
-   Fields needed:
-   - Company Name: ${entity.businessName}
-   - CAGE/SAM Unique Entity ID: ${entity.cageCode}
-   - Payment Terms
-   - Delivery Date (Estimated)
-   - Point of Contact & Telephone
-   - Email Address & Tax ID
-   - Warranty Information
-   - Electronic invoicing capability (WAWF)
+        const result = await generateObject({
+            model: openai(MODEL),
+            system: 'You are an expert government proposal writer. Create detailed, comprehensive response blocks that form a complete, professional RFQ response ready for submission.',
+            prompt,
+            schema: ProposalOutputSchema,
+        });
 
-4. H2 BLOCK: "Technical Specifications"
+        AgentLogger.logAgentSuccess(
+            'writer',
+            'RFQ Response Block Generation',
+            startTime,
+            {
+                responseBlocksCount: result.object.responseBlocks.length,
+                formsGenerated: result.object.responseBlocks.filter(
+                    (block) => block.type === 'Form',
+                ).length,
+                totalContentLength: result.object.responseBlocks.reduce(
+                    (acc, block) => acc + block.content.length,
+                    0,
+                ),
+            },
+        );
 
-5. TEXT BLOCK: Technical response addressing all requirements using strategic positioning
+        detailedLogger.logAgentSuccess(
+            'writer',
+            executionId,
+            detailedStartTime,
+            result.object,
+            {
+                modelUsed: MODEL,
+                promptLength: prompt.length
+            }
+        );
 
-6. H2 BLOCK: "Partnership Approach" (addresses NAICS gap)
+        return result.object;
+    } catch (error) {
+        AgentLogger.logAgentError(
+            'writer',
+            'RFQ Response Block Generation',
+            startTime,
+            error,
+        );
 
-7. TEXT BLOCK: Explanation of manufacturing partnership strategy
+        detailedLogger.logAgentError(
+            'writer',
+            executionId,
+            detailedStartTime,
+            error,
+            {
+                modelUsed: MODEL,
+                promptLength: 0
+            }
+        );
 
-8. H2 BLOCK: "Required Documentation"
-
-9. FORM BLOCK: Attachment 2 - Contractor Release of Financial Information
-
-10. FORM BLOCK: Attachment 3 - Financial Information Questionnaire
-
-11. H2 BLOCK: "Submission Details"
-
-12. TEXT BLOCK: Email template for submission
-
-CRITICAL REQUIREMENTS:
-- Address the NAICS gap through partnership approach
-- Include all required forms and information
-- Use professional government contracting tone
-- Position company strengths while mitigating weaknesses
-- Ensure compliance with all RFQ requirements
-
-Generate both the legacy format (for insights) AND the new responseBlocks array with proper structure, order, and form fields.`;
-
-    const result = await generateObject({
-      model: openai('gpt-4'),
-      system: 'You are an expert government proposal writer. Create structured response blocks that form a complete, professional RFQ response. Follow the strategic guidance while ensuring full compliance.',
-      prompt,
-      schema: ProposalOutputSchema,
-    });
-
-    AgentLogger.logAgentSuccess('writer', 'RFQ Response Block Generation', startTime, {
-      responseBlocksCount: result.object.responseBlocks.length,
-      formsGenerated: result.object.responseBlocks.filter(block => block.type === 'Form').length,
-      totalContentLength: result.object.responseBlocks.reduce((acc, block) => acc + block.content.length, 0)
-    });
-
-    return result.object;
-  } catch (error) {
-    AgentLogger.logAgentError('writer', 'RFQ Response Block Generation', startTime, error);
-    throw new Error(`Writer Agent failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
+        throw new Error(
+            `Writer Agent failed: ${
+                error instanceof Error ? error.message : 'Unknown error'
+            }`,
+        );
+    }
 }
 
-// Agent 4: Reviewer - Final compliance and block optimization
-export async function runReviewerAgent(
-  analysis: AnalysisOutput, 
-  strategy: StrategyOutput, 
-  proposal: ProposalOutput
-): Promise<ReviewOutput> {
-  const startTime = AgentLogger.logAgentStart('reviewer', 'Response Review & Final Block Assembly', {
-    responseBlocksToReview: proposal.responseBlocks.length,
-    complianceItems: analysis.complianceItems.length
-  });
-  
-  try {
-    const contract = getContractData();
-    
-    const prompt = `You are the final reviewer ensuring our RFQ response is submission-ready. Review the response blocks created by the Writer and make any necessary adjustments.
-
-CONTRACT REQUIREMENTS:
-RFQ: ${contract.solicitationNumber} - ${contract.title}
-Agency: ${contract.agencyName}
-Deadline: ${new Date(contract.deadlineDate).toLocaleDateString()}
-Submission emails: parie.reynolds@us.af.mil; lance.watters.1@us.af.mil
-
-ORIGINAL REQUIREMENTS CHECKLIST:
-${analysis.requirements.join('\n')}
-
-COMPLIANCE REQUIREMENTS:
-${analysis.complianceItems.join('\n')}
-
-GENERATED RESPONSE BLOCKS TO REVIEW:
-${proposal.responseBlocks.map(block => `${block.type}: ${block.title} (${block.content.length} chars)`).join('\n')}
-
-REVIEW CHECKLIST:
-1. All RFQ requirements addressed
-2. Required forms included and properly structured
-3. Technical specifications complete
-4. NAICS gap properly addressed
-5. Professional tone maintained
-6. Contact information correct
-7. Submission method compliant
-
-FINAL DELIVERABLES:
-1. Compliance check results
-2. Submission package details (email template, attachments, checklist)
-3. Final confidence score (0-100%)
-4. Final response blocks (with any necessary adjustments)
-
-Ensure the response is professional, compliant, and ready for submission to the Air Force contracting officers.`;
-
-    const result = await generateObject({
-      model: openai('gpt-4'),
-      system: 'You are an expert compliance reviewer for government contracts. Ensure complete accuracy and compliance. Provide final confidence assessment and submission-ready package.',
-      prompt,
-      schema: ReviewOutputSchema,
-    });
-
-    AgentLogger.logAgentSuccess('reviewer', 'Response Review & Final Block Assembly', startTime, {
-      finalScore: result.object.finalScore,
-      complianceChecks: result.object.complianceCheck.length,
-      finalBlocksCount: result.object.finalResponseBlocks.length
-    });
-
-    return result.object;
-  } catch (error) {
-    AgentLogger.logAgentError('reviewer', 'Response Review & Final Block Assembly', startTime, error);
-    throw new Error(`Reviewer Agent failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-}
-
-// Main orchestrator - now returns complete RFQ response
+// Main orchestrator - completely generic system
 export async function generateProposalResponse(): Promise<GeneratedRFQResponse> {
-  AgentLogger.logSystemEvent('Starting multi-agent RFQ response generation');
-  AgentLogger.clearLogs();
-  
-  try {
-    const contract = getContractData();
-    const entity = getEntityData();
-    
-    // Agent 1: Analysis & Strategic Insights
-    const analysis = await runAnalyzerAgent();
-    
-    // Agent 2: Strategy & Content Guidelines  
-    const strategy = await runStrategistAgent(analysis);
-    
-    // Agent 3: Response Block Generation
-    const proposal = await runWriterAgent(analysis, strategy);
-    
-    // Agent 4: Final Review & Assembly
-    const review = await runReviewerAgent(analysis, strategy, proposal);
-    
-    // Assemble final response
-    const finalResponse: GeneratedRFQResponse = {
-      metadata: {
-        rfqNumber: contract.solicitationNumber,
-        companyName: entity.businessName,
-        generatedAt: new Date().toISOString(),
-        lastModified: new Date().toISOString(),
-        version: 1,
-      },
-      blocks: review.finalResponseBlocks.map(block => ({
-        id: block.id,
-        type: block.type as any,
-        title: block.title,
-        content: block.content,
-        order: block.order,
-        editable: block.editable,
-        metadata: block.metadata,
-      })),
-      agentInsights: {
-        analysis,
-        strategy,
-        proposal,
-        review,
-      },
-      submissionReady: review.finalScore >= 90,
-      confidenceScore: review.finalScore,
-    };
+    AgentLogger.logSystemEvent('Starting contract-agnostic multi-agent RFQ response generation');
+    AgentLogger.clearLogs();
 
-    AgentLogger.logSystemEvent('Multi-agent RFQ response generation completed', {
-      finalScore: review.finalScore,
-      blocksGenerated: finalResponse.blocks.length,
-      submissionReady: finalResponse.submissionReady
-    });
+    try {
+        // Load raw JSON data
+        const contractJson = require('../../data/contract-data/contract.json');
+        const entityJson = require('../../data/entity-data/entity.json');
 
-    return {
-      ...finalResponse,
-      logs: AgentLogger.getLogs(),
-      summary: AgentLogger.getLogsSummary()
-    } as any;
-  } catch (error) {
-    AgentLogger.logSystemEvent('Multi-agent RFQ response generation failed', { 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    });
-    throw error;
-  }
-} 
+        // Step 1: Data Analysis - Extract structured information from raw JSON
+        const dataAnalysis = await runDataAnalyzerAgent(contractJson, entityJson);
+
+        // Step 2: Strategic Analysis - Based on structured data
+        const analysis = await runAnalyzerAgent(dataAnalysis);
+
+        // Step 3: Strategy Development - Content strategy and positioning
+        const strategy = await runStrategistAgent(dataAnalysis, analysis);
+
+        // Step 4: Response Generation - Comprehensive RFQ response
+        const proposal = await runWriterAgent(dataAnalysis, analysis, strategy);
+
+        // Assemble final response
+        const finalResponse: GeneratedRFQResponse = {
+            metadata: {
+                rfqNumber: contractJson.solicitationNumber,
+                companyName: entityJson.businessName,
+                generatedAt: new Date().toISOString(),
+                lastModified: new Date().toISOString(),
+                version: 1,
+            },
+            blocks: proposal.responseBlocks.map((block) => ({
+                id: block.id,
+                type: block.type as any,
+                title: block.title,
+                content: block.content,
+                order: block.order,
+                editable: block.editable,
+                metadata: block.metadata,
+            })),
+            agentInsights: {
+                analysis,
+                strategy,
+                proposal,
+                review: null, // Using 3-agent system
+            },
+            submissionReady: true,
+            confidenceScore: strategy.winProbability,
+        };
+
+        AgentLogger.logSystemEvent(
+            'Contract-agnostic RFQ response generation completed',
+            {
+                contractType: dataAnalysis.contractInfo.type,
+                finalScore: finalResponse.confidenceScore,
+                blocksGenerated: finalResponse.blocks.length,
+                submissionReady: finalResponse.submissionReady,
+            },
+        );
+
+        // Finalize detailed logging session
+        detailedLogger.finalizeSession(finalResponse, true);
+
+        return {
+            ...finalResponse,
+            logs: AgentLogger.getLogs(),
+            summary: AgentLogger.getLogsSummary(),
+            dataAnalysis, // Include the structured data analysis in response
+        } as any;
+    } catch (error) {
+        AgentLogger.logSystemEvent(
+            'Contract-agnostic RFQ response generation failed',
+            {
+                error: error instanceof Error ? error.message : 'Unknown error',
+            },
+        );
+        
+        detailedLogger.finalizeSession(undefined, false);
+        
+        throw error;
+    }
+}
