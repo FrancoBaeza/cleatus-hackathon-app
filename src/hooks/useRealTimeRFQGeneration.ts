@@ -33,6 +33,7 @@ import {
     type ProposalOutput
 } from '@/lib/types';
 
+
 export function useRealTimeRFQGeneration() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -43,6 +44,7 @@ export function useRealTimeRFQGeneration() {
     const [analysis, setAnalysis] = useState<AnalysisOutput | null>(null);
     const [strategy, setStrategy] = useState<StrategyOutput | null>(null);
     const [proposal, setProposal] = useState<ProposalOutput | null>(null);
+
     
     const [agentProgress, setAgentProgress] = useState<AgentProgress>({
         dataAnalyzer: { state: 'pending', message: 'Waiting to start data processing...' },
@@ -150,6 +152,7 @@ export function useRealTimeRFQGeneration() {
             }
             
             setProposal(proposalResult.data);
+            
             setAgentProgress(prev => ({
                 ...prev,
                 writer: {
@@ -212,5 +215,6 @@ export function useRealTimeRFQGeneration() {
             strategy,
             proposal,
         },
+
     };
 } 

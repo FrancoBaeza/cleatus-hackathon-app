@@ -51,6 +51,7 @@ import {
 import { AgentLogger } from '../logger';
 import { detailedLogger } from '../agent-logger';
 
+
 const MODEL = "gpt-4.1";
 
 /**
@@ -193,6 +194,17 @@ Locations: ${dataAnalysis.contractInfo.locations.join('; ')}
 Timeline: ${dataAnalysis.contractInfo.timeline}
 Submission Method: ${dataAnalysis.complianceRequirements.submissionMethod}
 
+TECHNICAL REQUIREMENTS:
+Specifications: ${dataAnalysis.technicalRequirements?.specifications?.join('; ') || 'Not specified'}
+Quality Standards: ${dataAnalysis.technicalRequirements?.qualityStandards?.join('; ') || 'Not specified'}
+Delivery Requirements: ${dataAnalysis.technicalRequirements?.deliveryRequirements?.join('; ') || 'Not specified'}
+Warranty Requirements: ${dataAnalysis.technicalRequirements?.warrantyRequirements?.join('; ') || 'Not specified'}
+
+PRICING AND TERMS:
+Payment Terms: ${dataAnalysis.pricingAndTerms?.paymentTerms?.join('; ') || 'Not specified'}
+Delivery Timeline: ${dataAnalysis.pricingAndTerms?.deliveryTimeline?.join('; ') || 'Not specified'}
+Warranty Terms: ${dataAnalysis.pricingAndTerms?.warrantyTerms?.join('; ') || 'Not specified'}
+
 ENTITY INFORMATION:
 Primary Capability: ${dataAnalysis.entityInfo.primaryCapability}
 Business Type: ${dataAnalysis.entityInfo.businessType}
@@ -206,6 +218,9 @@ Key Messages: ${strategy.contentStrategy.keyMessages.join('; ')}
 Value Propositions: ${strategy.valuePropositions.join('; ')}
 Gap Mitigation: ${strategy.gapMitigation}
 
+DOCUMENT CONTEXT:
+Documents Processed: ${dataAnalysis.documentAnalysis.documentsProcessed.length} documents analyzed for technical requirements and specifications.
+
 REQUIRED FORMS TO GENERATE:
 ${dataAnalysis.complianceRequirements.requiredForms.map(form => `- ${form.name}: ${form.description} (${form.criticality})`).join('\n')}
 
@@ -218,29 +233,35 @@ Headers (H1, H2, H3) create sections that contain their child content.
 GENERATE EXACTLY THE FOLLOWING BLOCKS IN ORDER:
 
 BLOCK 1: H1 - "Response to ${dataAnalysis.contractInfo.type} - Solicitation [Number]"
-BLOCK 2: TEXT - "Executive Summary: [2-3 paragraph overview of your response and capability]"
+BLOCK 2: TEXT - "Executive Summary: [2-3 paragraph overview addressing the specific contract requirements and entity capabilities]"
 
 BLOCK 3: H2 - "Company Information"
 BLOCK 4: H3 - "Company Overview"  
-BLOCK 5: TEXT - "[Comprehensive 200+ word company overview, positioning, capabilities]"
+BLOCK 5: TEXT - "[Comprehensive 200+ word company overview specifically addressing how the entity's capabilities align with this contract's requirements]"
 BLOCK 6: H3 - "Business Classification and Certifications"
-BLOCK 7: TEXT - "[Business type, certifications, NAICS alignment details]"
+BLOCK 7: TEXT - "[Specific business type, certifications, NAICS alignment details relevant to this contract]"
 BLOCK 8: H3 - "Core Competencies"
-BLOCK 9: TEXT - "[Relevant experience and competitive advantages, 150+ words]"
+BLOCK 9: TEXT - "[Relevant experience and competitive advantages specifically related to this contract's scope, 150+ words]"
 
 BLOCK 10: H2 - "Technical Approach"
 BLOCK 11: H3 - "Understanding of Requirements"
-BLOCK 12: TEXT - "[Demonstration of requirement comprehension, 200+ words]"
-BLOCK 13: H3 - "Methodology and Implementation"
-BLOCK 14: TEXT - "[Detailed technical approach and implementation, 300+ words]"
+BLOCK 12: TEXT - "[Detailed demonstration of requirement comprehension, addressing each specific deliverable and technical specification from the contract, 250+ words]"
+BLOCK 13: H3 - "Technical Specifications and Methodology"
+BLOCK 14: TEXT - "[Detailed technical approach addressing the specific requirements, including product specifications, quality standards, and implementation methodology, 400+ words]"
 BLOCK 15: H3 - "Deliverables and Quality Assurance"
-BLOCK 16: TEXT - "[How each deliverable will be addressed with QA measures, 200+ words]"
+BLOCK 16: TEXT - "[Specific QA measures for each deliverable, testing procedures, and compliance with contract specifications, 250+ words]"
 
 BLOCK 17: H2 - "Project Management and Delivery"
 BLOCK 18: H3 - "Project Organization"
-BLOCK 19: TEXT - "[Team structure and management approach, 150+ words]"
+BLOCK 19: TEXT - "[Team structure and management approach specifically designed for this contract's requirements, 150+ words]"
 BLOCK 20: H3 - "Timeline and Risk Management"
-BLOCK 21: TEXT - "[Project timeline, milestones, and risk mitigation, 200+ words]"
+BLOCK 21: TEXT - "[Detailed project timeline with milestones, delivery schedule, and specific risk mitigation strategies for this contract, 250+ words]"
+
+BLOCK 22: H2 - "Pricing and Terms"
+BLOCK 23: H3 - "Pricing Structure"
+BLOCK 24: TEXT - "[Detailed pricing breakdown for all deliverables, payment terms, and value proposition, 200+ words]"
+BLOCK 25: H3 - "Delivery and Warranty"
+BLOCK 26: TEXT - "[Specific delivery timeline, warranty terms, and post-delivery support, 150+ words]"
 
 FORMS: Generate one FORM block for each required form with appropriate fields.
 
@@ -253,8 +274,10 @@ CRITICAL REQUIREMENTS FOR HIERARCHICAL STRUCTURE:
 - Address ALL contract requirements across the hierarchical structure
 - Follow strategic positioning throughout all content blocks
 - Generate forms as separate blocks with proper field structures
+- Make content SPECIFIC to the contract requirements, not generic
+- Include technical specifications, delivery details, and compliance information
 
-Generate a complete hierarchical structure with approximately 15-20 total blocks (including all headers and content). This atomized approach allows for better content organization and editing flexibility.`;
+Generate a complete hierarchical structure with approximately 20-25 total blocks (including all headers and content). This atomized approach allows for better content organization and editing flexibility.`;
 
         const result = await generateObject({
             model: openai(MODEL),
@@ -278,7 +301,8 @@ Generate a complete hierarchical structure with approximately 15-20 total blocks
             });
         }
         
-        // Update the result with hierarchical structure
+        // Use hierarchical blocks directly (no form auto-completion)
+        console.log('📝 Using generated response blocks directly');
         result.object.responseBlocks = hierarchicalBlocks;
 
         AgentLogger.logAgentSuccess(

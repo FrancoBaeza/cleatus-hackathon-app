@@ -76,6 +76,9 @@ Value Proposition: ${dataAnalysis.opportunityAssessment.valueProposition}
 Competitive Positioning: ${dataAnalysis.opportunityAssessment.competitivePositioning}
 Win Probability: ${dataAnalysis.opportunityAssessment.estimatedWinProbability}%
 
+DOCUMENT CONTEXT:
+Documents Processed: ${dataAnalysis.documentAnalysis.documentsProcessed.length} documents available for context
+
 STRATEGIC ANALYSIS:
 Requirements: ${analysis.requirements.join('; ')}
 Critical Gaps: ${analysis.gaps.join('; ')}

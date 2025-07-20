@@ -37,17 +37,7 @@ import {
     type DocumentInfo 
 } from '../services/document-fetcher';
 import { 
-    analyzeDocumentsForForms,
-    type DocumentFormAnalysis 
-} from '../services/form-analyzer';
-import { 
-    mapEntityToMultipleForms,
-    type PreFilledForm 
-} from '../services/form-mapper';
-import { 
-    extractDocumentInfo,
-    filterFormDocuments,
-    getFormMappingStats
+    extractDocumentInfo
 } from '../utils/document-utils';
 
 const MODEL = "gpt-4.1";
@@ -61,25 +51,21 @@ export async function runDataAnalyzerAgent(contractJson: any, entityJson: any, d
         console.log('📊 Phase 1: Analyzing raw contract and entity data...');
         const baseAnalysis = await analyzeRawContractData(contractJson, entityJson);
         
-        // PHASE 2: Process real documents for forms (enhanced analysis)
-        console.log('📄 Phase 2: Processing real contract documents...');
-        const { documentAnalysis, preFilledForms } = await processContractDocuments(documentsJson, entityJson);
+        // PHASE 2: Process real documents for context (simplified)
+        console.log('📄 Phase 2: Processing real contract documents for context...');
+        const documentAnalysis = await processContractDocuments(documentsJson);
         
         // PHASE 3: Combine all analysis results
         console.log('🔄 Phase 3: Combining analysis results...');
         const enhancedAnalysis: DataAnalysisOutput = {
             ...baseAnalysis,
             documentAnalysis,
-            preFilledForms,
         };
         
-        const mappingStats = getFormMappingStats(preFilledForms);
         const duration = Date.now() - startTime;
         
         console.log(`✅ Enhanced Data Analyzer Complete (${duration}ms):`);
         console.log(`   📋 Documents processed: ${documentAnalysis.documentsProcessed.length}`);
-        console.log(`   📝 Forms pre-filled: ${preFilledForms.length}`);
-        console.log(`   📊 Average completion: ${mappingStats.mappingRate}%`);
         
         return enhancedAnalysis;
 
@@ -94,7 +80,7 @@ export async function runDataAnalyzerAgent(contractJson: any, entityJson: any, d
  * PHASE 1: Analyzes raw contract and entity JSON data
  */
 async function analyzeRawContractData(contractJson: any, entityJson: any) {
-    const prompt = `You are analyzing raw contract and entity data to extract structured information for RFQ response generation. Process the data thoroughly and extract key insights.
+            const prompt = `You are analyzing raw contract and entity data to extract structured information for RFQ response generation. Process the data thoroughly and extract key insights.
 
 RAW CONTRACT DATA:
 ${JSON.stringify(contractJson, null, 2)}
@@ -134,84 +120,55 @@ EXTRACT AND STRUCTURE THE FOLLOWING:
    - Certifications needed
    - Submission method and deadlines
 
-Be thorough and specific. Extract actual values from the data, don't make assumptions.`;
+6. TECHNICAL REQUIREMENTS (NEW):
+   - Specific technical specifications from contract
+   - Quality standards and testing requirements
+   - Delivery and installation requirements
+   - Warranty and support requirements
+   - Any special technical considerations
 
-    const result = await generateObject({
-        model: openai(MODEL),
-        prompt,
-        schema: DataAnalysisOutputSchema.omit({ documentAnalysis: true, preFilledForms: true }),
-    });
+7. PRICING AND TERMS (NEW):
+   - Payment terms and conditions
+   - Delivery timeline requirements
+   - Warranty requirements
+   - Any financial or bonding requirements
+
+Be thorough and specific. Extract actual values from the data, don't make assumptions. Focus on technical details that will be needed for the response generation.`;
+
+            const result = await generateObject({
+            model: openai(MODEL),
+            prompt,
+            schema: DataAnalysisOutputSchema.omit({ documentAnalysis: true }),
+        });
 
     return result.object;
 }
 
 /**
- * PHASE 2: Processes real contract documents for forms and requirements
+ * PHASE 2: Processes real contract documents for context (simplified)
  */
-async function processContractDocuments(documentsJson: any, entityJson: any) {
+async function processContractDocuments(documentsJson: any) {
     try {
-        console.log("DOCUMENTS JSON", documentsJson);
         // Extract document information from contract data
         const documentsData = documentsJson || [];
         if (!Array.isArray(documentsData) || documentsData.length === 0) {
             console.log('⚠️ No documents found in contract data, skipping document analysis');
             return {
-                documentAnalysis: {
-                    documentsProcessed: [],
-                    formMappingResults: [],
-                },
-                preFilledForms: [],
-            };
-        }
-
-        // Filter to only documents likely to contain forms
-        const formDocuments = filterFormDocuments(documentsData);
-        console.log(`📋 Found ${formDocuments.length} potential form documents out of ${documentsData.length} total`);
-
-        if (formDocuments.length === 0) {
-            console.log('⚠️ No form documents identified, skipping form analysis');
-            return {
-                documentAnalysis: {
-                    documentsProcessed: [],
-                    formMappingResults: [],
-                },
-                preFilledForms: [],
+                documentsProcessed: [],
             };
         }
 
         // Extract document info for downloading
-        const documentInfos = extractDocumentInfo(formDocuments);
+        const documentInfos = extractDocumentInfo(documentsData);
         
-        // STEP 1: Download documents
-        console.log(`📥 Downloading ${documentInfos.length} form documents...`);
+        // Download documents
+        console.log(`📥 Downloading ${documentInfos.length} documents for context...`);
         const fetchResults = await fetchDocuments(documentInfos);
         
-        // STEP 2: Analyze documents for form fields
-        console.log(`🔍 Analyzing documents for form fields...`);
-        const documentsForAnalysis = Array.from(fetchResults.entries())
-            .filter(([_, result]) => result.success && result.content)
-            .map(([id, result]) => {
-                const docInfo = documentInfos.find(d => d.id === id)!;
-                return {
-                    id,
-                    name: docInfo.filename,
-                    content: result.content!,
-                    type: result.metadata?.type || 'unknown',
-                };
-            });
-
-        const formAnalyses = await analyzeDocumentsForForms(documentsForAnalysis);
-        
-        // STEP 3: Map entity data to form fields
-        console.log(`🎯 Mapping entity data to form fields...`);
-        const successfulAnalyses = formAnalyses.filter(analysis => analysis.analysisSuccess);
-        const preFilledForms = await mapEntityToMultipleForms(entityJson, successfulAnalyses);
-        
-        // STEP 4: Prepare document analysis summary
+        // Prepare document analysis summary
         const documentAnalysis = {
             documentsProcessed: Array.from(fetchResults.entries()).map(([id, result]) => {
                 const docInfo = documentInfos.find(d => d.id === id)!;
-                const analysis = formAnalyses.find(a => a.documentId === id);
                 
                 return {
                     id,
@@ -219,31 +176,17 @@ async function processContractDocuments(documentsJson: any, entityJson: any) {
                     type: docInfo.type,
                     url: docInfo.url,
                     analysisSuccess: result.success,
-                    extractedFields: analysis?.extractedFields || [],
+                    summary: result.success ? 'Document successfully processed for context' : 'Failed to process document',
                 };
             }),
-            formMappingResults: preFilledForms.map(form => ({
-                documentId: form.documentId,
-                documentName: form.documentName,
-                mappingSuccess: form.completionPercentage > 0,
-                totalFields: form.fields.length,
-                mappedFields: form.fields.filter(f => f.value && f.mappingSource !== 'unmapped').length,
-                unmappedFields: form.fields
-                    .filter(f => !f.value || f.mappingSource === 'unmapped')
-                    .map(f => f.label),
-            })),
         };
 
-        return { documentAnalysis, preFilledForms };
+        return documentAnalysis;
 
     } catch (error) {
         console.error('❌ Error processing contract documents:', error);
         return {
-            documentAnalysis: {
-                documentsProcessed: [],
-                formMappingResults: [],
-            },
-            preFilledForms: [],
+            documentsProcessed: [],
         };
     }
 } 

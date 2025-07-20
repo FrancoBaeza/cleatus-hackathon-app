@@ -73,6 +73,9 @@ Risk Factors: ${dataAnalysis.gapAnalysis.riskFactors.join('; ')}
 Win Factors: ${dataAnalysis.opportunityAssessment.winFactors.join('; ')}
 Estimated Win Probability: ${dataAnalysis.opportunityAssessment.estimatedWinProbability}%
 
+DOCUMENT ANALYSIS:
+Documents Processed: ${dataAnalysis.documentAnalysis.documentsProcessed.length} documents analyzed for context
+
 PROVIDE STRATEGIC ANALYSIS:
 
 1. REQUIREMENTS: Comprehensive list of what the RFQ asks for

@@ -47,10 +47,11 @@ export async function generateProposalResponse(): Promise<GeneratedRFQResponse> 
         // Load raw JSON data (contract-agnostic approach)
         const contractJson = require('../../../../data/contract-data/contract.json');
         const entityJson = require('../../../../data/entity-data/entity.json');
+        const documentsJson = require('../../../../data/contract-data/documents.json');
 
         // Step 1: Data Analysis - Extract structured information from raw JSON
         AgentLogger.logSystemEvent('Step 1: Processing raw contract and entity data');
-        const dataAnalysis = await runDataAnalyzerAgent(contractJson, entityJson);
+        const dataAnalysis = await runDataAnalyzerAgent(contractJson, entityJson, documentsJson);
 
         // Step 2: Strategic Analysis - Based on structured data
         AgentLogger.logSystemEvent('Step 2: Performing strategic analysis and gap identification');

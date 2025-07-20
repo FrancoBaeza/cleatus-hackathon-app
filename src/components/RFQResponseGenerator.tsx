@@ -27,6 +27,7 @@ import { type ResponseBlock } from '@/lib/types';
 import AgentProgressPanel from './AgentProgressPanel';
 import ResponseEditor from './ResponseEditor';
 import AgentResults from './AgentResults';
+
 import ActionButtons from '@/components/ActionButtons';
 
 export default function RFQResponseGenerator() {
@@ -38,6 +39,7 @@ export default function RFQResponseGenerator() {
         agentProgress,
         finalResponse,
         intermediateResults,
+
     } = useRealTimeRFQGeneration();
 
     // Response blocks state (for editing)
@@ -119,6 +121,8 @@ export default function RFQResponseGenerator() {
                                 </CardContent>
                             </Card>
                         </TabsContent>
+
+
 
                         <TabsContent value="insights" className="space-y-6">
                             <Card>

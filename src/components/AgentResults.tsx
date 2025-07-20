@@ -50,9 +50,10 @@ export default function AgentResults({ dataAnalysis, analysis, strategy, proposa
       
       <CardContent>
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="data">📊 Data</TabsTrigger>
+            <TabsTrigger value="technical">⚙️ Technical</TabsTrigger>
             <TabsTrigger value="analysis">🔍 Analysis</TabsTrigger>
             <TabsTrigger value="strategy">🎯 Strategy</TabsTrigger>
             <TabsTrigger value="proposal">✍️ Proposal</TabsTrigger>
@@ -201,6 +202,107 @@ export default function AgentResults({ dataAnalysis, analysis, strategy, proposa
                           ))}
                         </ul>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="technical" className="space-y-4">
+            {dataAnalysis && (
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Technical Requirements</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {dataAnalysis.technicalRequirements?.specifications?.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold mb-2">Technical Specifications</h4>
+                          <ul className="list-disc list-inside space-y-1">
+                            {dataAnalysis.technicalRequirements.specifications.map((spec, index) => (
+                              <li key={index} className="text-sm">{spec}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {dataAnalysis.technicalRequirements?.qualityStandards?.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold mb-2">Quality Standards</h4>
+                          <ul className="list-disc list-inside space-y-1">
+                            {dataAnalysis.technicalRequirements.qualityStandards.map((standard, index) => (
+                              <li key={index} className="text-sm">{standard}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {dataAnalysis.technicalRequirements?.deliveryRequirements?.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold mb-2">Delivery Requirements</h4>
+                          <ul className="list-disc list-inside space-y-1">
+                            {dataAnalysis.technicalRequirements.deliveryRequirements.map((req, index) => (
+                              <li key={index} className="text-sm">{req}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {dataAnalysis.technicalRequirements?.warrantyRequirements?.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold mb-2">Warranty Requirements</h4>
+                          <ul className="list-disc list-inside space-y-1">
+                            {dataAnalysis.technicalRequirements.warrantyRequirements.map((warranty, index) => (
+                              <li key={index} className="text-sm">{warranty}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Pricing and Terms</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {dataAnalysis.pricingAndTerms?.paymentTerms?.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold mb-2">Payment Terms</h4>
+                          <ul className="list-disc list-inside space-y-1">
+                            {dataAnalysis.pricingAndTerms.paymentTerms.map((term, index) => (
+                              <li key={index} className="text-sm">{term}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {dataAnalysis.pricingAndTerms?.deliveryTimeline?.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold mb-2">Delivery Timeline</h4>
+                          <ul className="list-disc list-inside space-y-1">
+                            {dataAnalysis.pricingAndTerms.deliveryTimeline.map((timeline, index) => (
+                              <li key={index} className="text-sm">{timeline}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {dataAnalysis.pricingAndTerms?.warrantyTerms?.length > 0 && (
+                        <div>
+                          <h4 className="font-semibold mb-2">Warranty Terms</h4>
+                          <ul className="list-disc list-inside space-y-1">
+                            {dataAnalysis.pricingAndTerms.warrantyTerms.map((warranty, index) => (
+                              <li key={index} className="text-sm">{warranty}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
