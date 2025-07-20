@@ -16,10 +16,10 @@ import {
 } from 'lucide-react';
 import { 
     generateSimpleRFQPDF, 
+    generateFormPDF,
     downloadPDF 
 } from '@/lib/services/pdf-generator-simple';
 import { 
-    generateEmailTemplate, 
     openEmailClient,
     type EmailTemplate 
 } from '@/lib/services/pdf-generator';
@@ -54,17 +54,76 @@ export default function ExportAndSubmitButtons({
         onExportStart?.();
 
         try {
-            const blob = await generateSimpleRFQPDF(blocks, {
+            console.log('🔍 Starting PDF generation...');
+            console.log('📊 Total blocks:', blocks.length);
+            console.log('📋 Form blocks:', blocks.filter(block => block.type === 'Form').length);
+            
+            // Generate main PDF without forms
+            const mainBlob = await generateSimpleRFQPDF(blocks, {
                 title: `RFQ Response - ${rfqNumber}`,
                 companyName,
                 rfqNumber,
-                excludeSubmissionInfo: true
+                excludeSubmissionInfo: true,
+                excludeForms: true
             });
             
-            setPdfBlob(blob);
-            downloadPDF(blob, `RFQ_Response_${rfqNumber}_${new Date().toISOString().split('T')[0]}.pdf`);
+            setPdfBlob(mainBlob);
+            downloadPDF(mainBlob, `RFQ_Response_${rfqNumber}_${new Date().toISOString().split('T')[0]}.pdf`);
+            console.log('✅ Main PDF generated and downloaded');
             
-            console.log('✅ PDF generated and downloaded successfully');
+            // Generate separate PDFs for each form - search recursively
+            const findFormBlocksRecursively = (blocks: any[]): any[] => {
+                let formBlocks: any[] = [];
+                blocks.forEach(block => {
+                    if (block.type === 'Form') {
+                        formBlocks.push(block);
+                    }
+                    if (block.children && block.children.length > 0) {
+                        formBlocks = formBlocks.concat(findFormBlocksRecursively(block.children));
+                    }
+                });
+                return formBlocks;
+            };
+            
+            const formBlocks = findFormBlocksRecursively(blocks);
+            console.log(`📋 Found ${formBlocks.length} form blocks to process`);
+            
+            if (formBlocks.length > 0) {
+                console.log(`📋 Generating ${formBlocks.length} form PDFs...`);
+                
+                for (let i = 0; i < formBlocks.length; i++) {
+                    const formBlock = formBlocks[i];
+                    console.log(`📄 Processing form ${i + 1}: "${formBlock.text}"`);
+                    console.log(`📋 Form fields:`, formBlock.metadata?.formFields);
+                    
+                    if (formBlock.metadata?.formFields && Array.isArray(formBlock.metadata.formFields)) {
+                        const formBlob = await generateFormPDF({
+                            formTitle: formBlock.text,
+                            formFields: formBlock.metadata.formFields,
+                            companyName,
+                            rfqNumber
+                        });
+                        
+                        // Create safe filename
+                        const safeFormTitle = formBlock.text.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_');
+                        const formFilename = `Form_${i + 1}_${safeFormTitle}_${new Date().toISOString().split('T')[0]}.pdf`;
+                        
+                        downloadPDF(formBlob, formFilename);
+                        console.log(`✅ Form PDF ${i + 1} downloaded: ${formFilename}`);
+                        
+                        // Small delay to avoid browser blocking multiple downloads
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    } else {
+                        console.warn(`⚠️ Form ${i + 1} has no form fields:`, formBlock);
+                    }
+                }
+                
+                console.log(`✅ Generated ${formBlocks.length} form PDFs successfully`);
+            } else {
+                console.log('ℹ️ No form blocks found to generate separate PDFs');
+            }
+            
+            console.log('✅ Main PDF and form PDFs generated and downloaded successfully');
         } catch (error) {
             console.error('❌ PDF generation failed:', error);
             alert('Failed to generate PDF. Please try again.');
@@ -86,17 +145,35 @@ export default function ExportAndSubmitButtons({
                     title: `RFQ Response - ${rfqNumber}`,
                     companyName,
                     rfqNumber,
-                    excludeSubmissionInfo: true
+                    excludeSubmissionInfo: true,
+                    excludeForms: true
                 });
                 setPdfBlob(currentPdfBlob);
             }
 
-            // Generate email template
-            const template = generateEmailTemplate(blocks, {
-                ...contactInfo,
-                rfqNumber,
-                companyName
-            }, currentPdfBlob || undefined);
+            // Generate email template using the same format as Response Editor
+            const textBlocks = blocks.filter(b => b.type === 'Text');
+            const emailContent = `Subject: Response to ${rfqNumber}
+
+Dear Contracting Officer,
+
+Please find our response to ${rfqNumber} attached.
+
+${textBlocks.slice(0, 2).map(b => b.text).join('\n\n')}
+
+Thank you for your consideration.
+
+Best regards,
+${companyName}`;
+
+            // Create email template object
+            const template: EmailTemplate = {
+                subject: `Response to ${rfqNumber}`,
+                body: emailContent,
+                to: contactInfo?.submissionEmail || [],
+                cc: contactInfo?.secondaryContact?.email ? [contactInfo.secondaryContact.email] : [],
+                attachments: currentPdfBlob ? ['RFQ_Response.pdf'] : []
+            };
             
             setEmailTemplate(template);
             
@@ -149,12 +226,12 @@ export default function ExportAndSubmitButtons({
                             {pdfBlob ? (
                                 <span className="flex items-center text-green-700">
                                     <CheckCircle className="w-3 h-3 mr-1" />
-                                    PDF ready for download
+                                    PDFs ready for download
                                 </span>
                             ) : (
                                 <span className="flex items-center text-gray-600">
                                     <Clock className="w-3 h-3 mr-1" />
-                                    Generate PDF for submission
+                                    Generate main PDF + form PDFs
                                 </span>
                             )}
                         </div>
@@ -178,7 +255,7 @@ export default function ExportAndSubmitButtons({
                             ) : (
                                 <>
                                     <FileDown className="w-4 h-4 mr-2" />
-                                    Generate PDF
+                                    Generate PDFs
                                 </>
                             )}
                         </Button>
@@ -282,7 +359,7 @@ export default function ExportAndSubmitButtons({
             )}
 
             {/* Action Buttons */}
-            {/* <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                     onClick={handleGeneratePDF}
                     disabled={isGeneratingPDF || !hasBlocks}
@@ -297,7 +374,7 @@ export default function ExportAndSubmitButtons({
                     ) : (
                         <>
                             <FileDown className="w-5 h-5 mr-2" />
-                            Export to PDFf
+                            Export PDFs
                         </>
                     )}
                 </Button>
@@ -321,7 +398,7 @@ export default function ExportAndSubmitButtons({
                         </>
                     )}
                 </Button>
-            </div> */}
+            </div>
 
             {/* Status Messages */}
             {lastAction && (
@@ -333,7 +410,7 @@ export default function ExportAndSubmitButtons({
                     {lastAction === 'pdf' && pdfBlob && (
                         <span className="flex items-center">
                             <CheckCircle className="w-4 h-4 mr-2" />
-                            PDF generated successfully! Check your downloads folder.
+                            Main PDF and form PDFs generated successfully! Check your downloads folder.
                         </span>
                     )}
                     {lastAction === 'email' && emailTemplate && (
