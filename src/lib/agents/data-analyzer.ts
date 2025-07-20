@@ -1,31 +1,29 @@
 'use server';
 
 /**
- * DATA ANALYZER AGENT
+ * ENHANCED DATA ANALYZER AGENT - WITH DOCUMENT PROCESSING
  * 
  * PURPOSE:
  * This agent serves as the foundation of our contract-agnostic RFQ response system.
- * It processes raw JSON data from any contract and entity, extracting structured
- * information using AI to understand the opportunity without hardcoded logic.
+ * It processes raw JSON data AND real contract documents, extracting structured
+ * information and auto-filling forms using AI.
+ * 
+ * NEW CAPABILITIES:
+ * 1. Downloads and analyzes real contract documents from URLs
+ * 2. Extracts form fields from PDFs and documents
+ * 3. Automatically maps entity data to form fields
+ * 4. Pre-fills forms with high confidence scoring
+ * 5. Provides comprehensive document analysis
  * 
  * RESPONSIBILITIES:
  * 1. Process raw contract JSON data to extract procurement type, scope, requirements
  * 2. Analyze entity JSON data to identify capabilities and business classification
- * 3. Perform gap analysis between contract requirements and entity capabilities
- * 4. Assess opportunity potential and estimate win probability
- * 5. Identify compliance requirements and required forms dynamically
- * 
- * INPUT:
- * - contractJson: Raw contract data from any government RFQ/RFP
- * - entityJson: Raw entity/company data with capabilities and classifications
- * 
- * OUTPUT:
- * - Structured DataAnalysisOutput with contract info, entity assessment, 
- *   gap analysis, opportunity assessment, and compliance requirements
- * 
- * WHY THIS MATTERS:
- * This agent eliminates hardcoding by using AI to understand any contract type,
- * making the system truly universal for government contracting opportunities.
+ * 3. Download and analyze real contract documents for forms
+ * 4. Extract form fields and requirements from documents
+ * 5. Map entity information to form fields intelligently
+ * 6. Pre-fill forms with confidence scoring and review flags
+ * 7. Perform gap analysis between contract requirements and entity capabilities
+ * 8. Assess opportunity potential and estimate win probability
  */
 
 import { openai } from '@ai-sdk/openai';
@@ -33,19 +31,70 @@ import { generateObject } from 'ai';
 import { DataAnalysisOutputSchema, type DataAnalysisOutput } from '../types';
 import { AgentLogger } from '../logger';
 import { detailedLogger } from '../agent-logger';
+import { 
+    fetchDocuments,
+    type DocumentFetchResult,
+    type DocumentInfo 
+} from '../services/document-fetcher';
+import { 
+    analyzeDocumentsForForms,
+    type DocumentFormAnalysis 
+} from '../services/form-analyzer';
+import { 
+    mapEntityToMultipleForms,
+    type PreFilledForm 
+} from '../services/form-mapper';
+import { 
+    extractDocumentInfo,
+    filterFormDocuments,
+    getFormMappingStats
+} from '../utils/document-utils';
 
 const MODEL = "gpt-4.1";
 
-export async function runDataAnalyzerAgent(contractJson: any, entityJson: any): Promise<DataAnalysisOutput> {
-    const startTime = AgentLogger.logAgentStart(
-        'data-analyzer',
-        'Raw Data Processing & Structure Extraction',
-    );
-
-    const { executionId, startTime: detailedStartTime } = detailedLogger.logAgentStart('data-analyzer');
+export async function runDataAnalyzerAgent(contractJson: any, entityJson: any, documentsJson: any): Promise<DataAnalysisOutput> {
+    const startTime = Date.now();
+    console.log('🚀 Enhanced Data Analyzer: Starting comprehensive analysis...');
 
     try {
-        const prompt = `You are analyzing raw contract and entity data to extract structured information for RFQ response generation. Process the data thoroughly and extract key insights.
+        // PHASE 1: Analyze raw JSON data (base analysis)
+        console.log('📊 Phase 1: Analyzing raw contract and entity data...');
+        const baseAnalysis = await analyzeRawContractData(contractJson, entityJson);
+        
+        // PHASE 2: Process real documents for forms (enhanced analysis)
+        console.log('📄 Phase 2: Processing real contract documents...');
+        const { documentAnalysis, preFilledForms } = await processContractDocuments(documentsJson, entityJson);
+        
+        // PHASE 3: Combine all analysis results
+        console.log('🔄 Phase 3: Combining analysis results...');
+        const enhancedAnalysis: DataAnalysisOutput = {
+            ...baseAnalysis,
+            documentAnalysis,
+            preFilledForms,
+        };
+        
+        const mappingStats = getFormMappingStats(preFilledForms);
+        const duration = Date.now() - startTime;
+        
+        console.log(`✅ Enhanced Data Analyzer Complete (${duration}ms):`);
+        console.log(`   📋 Documents processed: ${documentAnalysis.documentsProcessed.length}`);
+        console.log(`   📝 Forms pre-filled: ${preFilledForms.length}`);
+        console.log(`   📊 Average completion: ${mappingStats.mappingRate}%`);
+        
+        return enhancedAnalysis;
+
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error in enhanced data analysis';
+        console.error('❌ Enhanced Data Analyzer failed:', errorMessage);
+        throw error;
+    }
+}
+
+/**
+ * PHASE 1: Analyzes raw contract and entity JSON data
+ */
+async function analyzeRawContractData(contractJson: any, entityJson: any) {
+    const prompt = `You are analyzing raw contract and entity data to extract structured information for RFQ response generation. Process the data thoroughly and extract key insights.
 
 RAW CONTRACT DATA:
 ${JSON.stringify(contractJson, null, 2)}
@@ -55,96 +104,146 @@ ${JSON.stringify(entityJson, null, 2)}
 
 EXTRACT AND STRUCTURE THE FOLLOWING:
 
-1. CONTRACT ANALYSIS:
-   - Procurement type and scope (Manufacturing, Services, Construction, etc.)
-   - Key requirements and deliverables (what exactly needs to be done)
-   - Performance locations (where work will be performed)
-   - Timeline and critical deadlines
-   - Set-aside type if applicable (SDVOSB, Small Business, 8(a), etc.)
-   - Special requirements (certifications, security clearances, etc.)
+1. CONTRACT INFORMATION:
+   - Type of procurement (construction, services, manufacturing, etc.)
+   - Scope and key requirements
+   - Deliverables and timeline
+   - Performance locations
+   - Set-aside type (SDVOSB, Small Business, etc.)
+   - Special requirements and certifications
 
 2. ENTITY ASSESSMENT:
-   - Primary business capability and industry focus
-   - Relevant experience for this specific contract type
-   - Key competitive advantages
-   - Business classification (size, certifications, specializations)
+   - Primary business capability
+   - Relevant experience for this contract
+   - Competitive advantages
+   - Business classification and size
 
 3. GAP ANALYSIS:
-   - NAICS code alignment between required and entity primary
-   - Capability gaps that need to be addressed
-   - Compliance gaps (certifications, registrations)
-   - Risk factors that could impact bid success
+   - NAICS code alignment between required and entity
+   - Capability gaps
+   - Compliance or certification gaps
+   - Risk factors
 
 4. OPPORTUNITY ASSESSMENT:
-   - Factors that increase win probability for this entity
-   - How to position competitively against likely competitors
-   - Core value proposition for this opportunity
-   - Realistic win probability estimate (0-100%)
+   - Win factors and competitive positioning
+   - Value proposition for this opportunity
+   - Estimated win probability (realistic assessment)
 
 5. COMPLIANCE REQUIREMENTS:
-   - Required forms for submission (extract from contract documents)
-   - Certifications needed for compliance
-   - Submission method and key deadlines
-   - Critical deadlines to track
+   - Required forms for submission (identify from contract data)
+   - Certifications needed
+   - Submission method and deadlines
 
-IMPORTANT: Base your analysis entirely on the provided data. Do not make assumptions beyond what's explicitly stated or reasonably inferred from the contract and entity information.
+Be thorough and specific. Extract actual values from the data, don't make assumptions.`;
 
-Be thorough and extract ALL relevant information from the raw data. This structured output will be used by other agents to generate the RFQ response.`;
+    const result = await generateObject({
+        model: openai(MODEL),
+        prompt,
+        schema: DataAnalysisOutputSchema.omit({ documentAnalysis: true, preFilledForms: true }),
+    });
 
-        const result = await generateObject({
-            model: openai(MODEL),
-            system: 'You are an expert data analyst specializing in government contracts. Extract comprehensive, structured information from raw contract and entity data to enable automated RFQ response generation.',
-            prompt,
-            schema: DataAnalysisOutputSchema,
-        });
+    return result.object;
+}
 
-        AgentLogger.logAgentSuccess(
-            'data-analyzer',
-            'Raw Data Processing & Structure Extraction',
-            startTime,
-            {
-                contractType: result.object.contractInfo.type,
-                requirementsCount: result.object.contractInfo.keyRequirements.length,
-                naicsMatch: result.object.gapAnalysis.naicsAlignment.isMatch,
-                winProbability: result.object.opportunityAssessment.estimatedWinProbability,
-            },
-        );
+/**
+ * PHASE 2: Processes real contract documents for forms and requirements
+ */
+async function processContractDocuments(documentsJson: any, entityJson: any) {
+    try {
+        console.log("DOCUMENTS JSON", documentsJson);
+        // Extract document information from contract data
+        const documentsData = documentsJson || [];
+        if (!Array.isArray(documentsData) || documentsData.length === 0) {
+            console.log('⚠️ No documents found in contract data, skipping document analysis');
+            return {
+                documentAnalysis: {
+                    documentsProcessed: [],
+                    formMappingResults: [],
+                },
+                preFilledForms: [],
+            };
+        }
 
-        detailedLogger.logAgentSuccess(
-            'data-analyzer',
-            executionId,
-            detailedStartTime,
-            result.object,
-            {
-                modelUsed: MODEL,
-                promptLength: prompt.length
-            }
-        );
+        // Filter to only documents likely to contain forms
+        const formDocuments = filterFormDocuments(documentsData);
+        console.log(`📋 Found ${formDocuments.length} potential form documents out of ${documentsData.length} total`);
 
-        return result.object;
+        if (formDocuments.length === 0) {
+            console.log('⚠️ No form documents identified, skipping form analysis');
+            return {
+                documentAnalysis: {
+                    documentsProcessed: [],
+                    formMappingResults: [],
+                },
+                preFilledForms: [],
+            };
+        }
+
+        // Extract document info for downloading
+        const documentInfos = extractDocumentInfo(formDocuments);
+        
+        // STEP 1: Download documents
+        console.log(`📥 Downloading ${documentInfos.length} form documents...`);
+        const fetchResults = await fetchDocuments(documentInfos);
+        
+        // STEP 2: Analyze documents for form fields
+        console.log(`🔍 Analyzing documents for form fields...`);
+        const documentsForAnalysis = Array.from(fetchResults.entries())
+            .filter(([_, result]) => result.success && result.content)
+            .map(([id, result]) => {
+                const docInfo = documentInfos.find(d => d.id === id)!;
+                return {
+                    id,
+                    name: docInfo.filename,
+                    content: result.content!,
+                    type: result.metadata?.type || 'unknown',
+                };
+            });
+
+        const formAnalyses = await analyzeDocumentsForForms(documentsForAnalysis);
+        
+        // STEP 3: Map entity data to form fields
+        console.log(`🎯 Mapping entity data to form fields...`);
+        const successfulAnalyses = formAnalyses.filter(analysis => analysis.analysisSuccess);
+        const preFilledForms = await mapEntityToMultipleForms(entityJson, successfulAnalyses);
+        
+        // STEP 4: Prepare document analysis summary
+        const documentAnalysis = {
+            documentsProcessed: Array.from(fetchResults.entries()).map(([id, result]) => {
+                const docInfo = documentInfos.find(d => d.id === id)!;
+                const analysis = formAnalyses.find(a => a.documentId === id);
+                
+                return {
+                    id,
+                    name: docInfo.filename,
+                    type: docInfo.type,
+                    url: docInfo.url,
+                    analysisSuccess: result.success,
+                    extractedFields: analysis?.extractedFields || [],
+                };
+            }),
+            formMappingResults: preFilledForms.map(form => ({
+                documentId: form.documentId,
+                documentName: form.documentName,
+                mappingSuccess: form.completionPercentage > 0,
+                totalFields: form.fields.length,
+                mappedFields: form.fields.filter(f => f.value && f.mappingSource !== 'unmapped').length,
+                unmappedFields: form.fields
+                    .filter(f => !f.value || f.mappingSource === 'unmapped')
+                    .map(f => f.label),
+            })),
+        };
+
+        return { documentAnalysis, preFilledForms };
+
     } catch (error) {
-        AgentLogger.logAgentError(
-            'data-analyzer',
-            'Raw Data Processing & Structure Extraction',
-            startTime,
-            error,
-        );
-
-        detailedLogger.logAgentError(
-            'data-analyzer',
-            executionId,
-            detailedStartTime,
-            error,
-            {
-                modelUsed: MODEL,
-                promptLength: 0
-            }
-        );
-
-        throw new Error(
-            `Data Analyzer Agent failed: ${
-                error instanceof Error ? error.message : 'Unknown error'
-            }`,
-        );
+        console.error('❌ Error processing contract documents:', error);
+        return {
+            documentAnalysis: {
+                documentsProcessed: [],
+                formMappingResults: [],
+            },
+            preFilledForms: [],
+        };
     }
 } 

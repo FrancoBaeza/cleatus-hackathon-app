@@ -39,9 +39,10 @@ export async function executeDataAnalyzer(): Promise<{
         
         // Load raw JSON data
         const contractJson = require('../../../data/contract-data/contract.json');
+        const documentsJson = require('../../../data/contract-data/documents.json');
         const entityJson = require('../../../data/entity-data/entity.json');
         
-        const result = await runDataAnalyzerAgent(contractJson, entityJson);
+        const result = await runDataAnalyzerAgent(contractJson, entityJson, documentsJson);
         
         AgentLogger.logSystemEvent('Data Analyzer completed successfully', {
             contractType: result.contractInfo.type,

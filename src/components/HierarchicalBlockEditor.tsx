@@ -595,7 +595,7 @@ ${companyName}`;
             <div className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded border">
                 <div>
                     <h2 className="font-semibold text-gray-900">
-                        Hierarchical Editor
+                        Editor
                     </h2>
                     <p className="text-xs text-gray-600">
                         {rfqNumber} • {totalBlocks} blocks • {formBlocks} forms • {confidenceScore}% confidence

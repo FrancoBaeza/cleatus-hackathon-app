@@ -215,6 +215,51 @@ export const DataAnalysisOutputSchema = z.object({
         submissionMethod: z.string().describe('How and where to submit the response'),
         keyDeadlines: z.array(z.string()).describe('Critical deadlines to track'),
     }),
+    
+    // NEW: Document Analysis & Auto-filled Forms
+    documentAnalysis: z.object({
+        documentsProcessed: z.array(z.object({
+            id: z.string(),
+            name: z.string(),
+            type: z.string(),
+            url: z.string(),
+            analysisSuccess: z.boolean(),
+            extractedFields: z.array(z.object({
+                fieldName: z.string(),
+                fieldType: z.string(),
+                isRequired: z.boolean(),
+                description: z.string().optional(),
+            })).optional(),
+        })).describe('Analysis of real contract documents'),
+        formMappingResults: z.array(z.object({
+            documentId: z.string(),
+            documentName: z.string(),
+            mappingSuccess: z.boolean(),
+            totalFields: z.number(),
+            mappedFields: z.number(),
+            unmappedFields: z.array(z.string()).optional(),
+        })).describe('Results of mapping entity data to form fields'),
+    }),
+    
+    preFilledForms: z.array(z.object({
+        id: z.string(),
+        documentId: z.string(),
+        documentName: z.string(),
+        formTitle: z.string(),
+        fields: z.array(z.object({
+            id: z.string(),
+            label: z.string(),
+            type: z.enum(['text', 'email', 'tel', 'date', 'textarea', 'select']),
+            value: z.string(),
+            required: z.boolean(),
+            mappingSource: z.string().describe('Where the value was mapped from (e.g., "entity.businessName")'),
+            confidenceScore: z.number().min(0).max(100).describe('AI confidence in the mapping'),
+            needsReview: z.boolean().describe('Whether this field needs human review'),
+            options: z.array(z.string()).optional(),
+        })),
+        completionPercentage: z.number().min(0).max(100).describe('Percentage of fields successfully pre-filled'),
+        reviewNotes: z.string().describe('Notes for user review and validation'),
+    })).describe('Forms automatically pre-filled with entity information'),
 });
 
 export type DataAnalysisOutput = z.infer<typeof DataAnalysisOutputSchema>;
