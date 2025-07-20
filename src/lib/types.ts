@@ -279,6 +279,32 @@ export const DataAnalysisOutputSchema = z.object({
         keyDeadlines: z
             .array(z.string())
             .describe('Critical deadlines to track'),
+        // NEW: Contact information for automated submission
+        contactInformation: z.object({
+            primaryContact: z.object({
+                name: z.string().describe('Primary contact person name'),
+                title: z.string().optional().describe('Contact person title/role'),
+                email: z.string().describe('Primary contact email address'),
+                phone: z.string().optional().describe('Primary contact phone number'),
+                fax: z.string().optional().describe('Primary contact fax number'),
+            }).describe('Primary contracting officer contact'),
+            secondaryContact: z.object({
+                name: z.string().describe('Secondary contact person name'),
+                title: z.string().optional().describe('Contact person title/role'),
+                email: z.string().describe('Secondary contact email address'),
+                phone: z.string().optional().describe('Secondary contact phone number'),
+                fax: z.string().optional().describe('Secondary contact fax number'),
+            }).optional().describe('Secondary contracting officer contact'),
+            submissionEmail: z.array(z.string()).describe('All email addresses for submission'),
+            submissionInstructions: z.string().describe('Specific submission instructions'),
+            officeAddress: z.object({
+                street: z.string().optional().describe('Office street address'),
+                city: z.string().describe('Office city'),
+                state: z.string().describe('Office state'),
+                zipCode: z.string().describe('Office zip code'),
+                country: z.string().describe('Office country'),
+            }).optional().describe('Contracting office address'),
+        }).describe('Complete contact information for submission'),
     }),
 
     technicalRequirements: z.object({

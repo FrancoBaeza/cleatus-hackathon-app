@@ -165,6 +165,12 @@ async function analyzeContractData(
    - ALL certifications and registrations needed
    - Submission method and ALL deadlines
    - Key compliance items from documents
+   - COMPLETE CONTACT INFORMATION for automated submission:
+     * Primary contact: name, title, email, phone, fax
+     * Secondary contact: name, title, email, phone, fax (if available)
+     * All submission email addresses
+     * Specific submission instructions
+     * Contracting office address (street, city, state, zip, country)
 
     6. TECHNICAL REQUIREMENTS:
     - ALL technical specifications from contract and documents
@@ -193,6 +199,12 @@ async function analyzeContractData(
     * type: Field type (text, email, tel, date, textarea, select)
     * required: Whether the field is mandatory
     * value: Suggested value or placeholder
+    - Extract ALL contact information for automated submission:
+    * Primary contracting officer: name, title, email, phone, fax
+    * Secondary contracting officer: name, title, email, phone, fax
+    * ALL email addresses where submissions should be sent
+    * Specific submission instructions and methods
+    * Complete office address information
     - Note ALL deadlines and submission requirements
     - Include ALL technical specifications and quality standards
     - Ensure NO mandatory elements are missed
@@ -218,6 +230,38 @@ async function analyzeContractData(
         "value": "9HET5"
         }
     ]
+    }
+
+    CONTACT INFORMATION STRUCTURE EXAMPLE:
+    Extract contact information like this:
+    {
+    "contactInformation": {
+        "primaryContact": {
+            "name": "Parie D Reynolds",
+            "title": "Contract Specialist",
+            "email": "parie.reynolds@us.af.mil",
+            "phone": "2103178332",
+            "fax": ""
+        },
+        "secondaryContact": {
+            "name": "Lance Watters",
+            "title": "Contracting Officer",
+            "email": "lance.watters.1@us.af.mil",
+            "phone": "2106711763",
+            "fax": ""
+        },
+        "submissionEmail": [
+            "parie.reynolds@us.af.mil",
+            "lance.watters.1@us.af.mil"
+        ],
+        "submissionInstructions": "Submit via email to both primary and secondary contacts by 4:00 PM CDT on July 21, 2025",
+        "officeAddress": {
+            "city": "JBSA LACKLAND",
+            "state": "TX",
+            "zipCode": "78236-5286",
+            "country": "USA"
+        }
+    }
     }
 
     Be thorough and specific. Extract actual values from the data and documents, don't make assumptions. Focus on information that will be needed for the complete RFQ response generation.`;

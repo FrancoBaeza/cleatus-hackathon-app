@@ -14,6 +14,7 @@ import {
   Download,
   Mail
 } from 'lucide-react';
+import ExportAndSubmitButtons from './ExportAndSubmitButtons';
 import { 
   AnalysisOutput, 
   StrategyOutput, 
@@ -50,13 +51,14 @@ export default function AgentResults({ dataAnalysis, analysis, strategy, proposa
       
       <CardContent>
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="data">📊 Data</TabsTrigger>
             <TabsTrigger value="technical">⚙️ Technical</TabsTrigger>
             <TabsTrigger value="analysis">🔍 Analysis</TabsTrigger>
             <TabsTrigger value="strategy">🎯 Strategy</TabsTrigger>
             <TabsTrigger value="proposal">✍️ Proposal</TabsTrigger>
+            <TabsTrigger value="contacts">📧 Contacts</TabsTrigger>
           </TabsList>
           
           <TabsContent value="overview" className="space-y-4">
@@ -104,17 +106,15 @@ export default function AgentResults({ dataAnalysis, analysis, strategy, proposa
               {/* Review card removed - using 3-agent system */}
             </div>
             
-            {/* Action Buttons */}
-            <div className="flex space-x-4 pt-4">
-              <Button className="flex items-center space-x-2">
-                <Download className="w-4 h-4" />
-                <span>Download Package</span>
-              </Button>
-              <Button variant="outline" className="flex items-center space-x-2">
-                <Mail className="w-4 h-4" />
-                <span>Preview Email</span>
-              </Button>
-            </div>
+            {/* Export and Submit Buttons */}
+            {proposal && (
+              <ExportAndSubmitButtons
+                blocks={proposal.responseBlocks}
+                contactInfo={dataAnalysis?.complianceRequirements?.contactInformation}
+                rfqNumber={dataAnalysis?.contractInfo?.type || 'Current RFQ'}
+                companyName="Your Company"
+              />
+            )}
           </TabsContent>
           
           <TabsContent value="data" className="space-y-4">
@@ -417,6 +417,143 @@ export default function AgentResults({ dataAnalysis, analysis, strategy, proposa
                   <CardContent>
                     <div className="prose prose-sm max-w-none">
                       <p className="whitespace-pre-wrap">{proposal.technicalResponse}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="contacts" className="space-y-4">
+            {dataAnalysis?.complianceRequirements?.contactInformation && (
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Mail className="w-5 h-5 text-blue-600" />
+                      <span>Submission Contact Information</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Primary Contact */}
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-blue-900 border-b border-blue-200 pb-2">
+                          Primary Contact
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="font-medium">Name:</span>
+                            <span>{dataAnalysis.complianceRequirements.contactInformation.primaryContact.name}</span>
+                          </div>
+                          {dataAnalysis.complianceRequirements.contactInformation.primaryContact.title && (
+                            <div className="flex justify-between">
+                              <span className="font-medium">Title:</span>
+                              <span>{dataAnalysis.complianceRequirements.contactInformation.primaryContact.title}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span className="font-medium">Email:</span>
+                            <span className="text-blue-600 font-mono">{dataAnalysis.complianceRequirements.contactInformation.primaryContact.email}</span>
+                          </div>
+                          {dataAnalysis.complianceRequirements.contactInformation.primaryContact.phone && (
+                            <div className="flex justify-between">
+                              <span className="font-medium">Phone:</span>
+                              <span>{dataAnalysis.complianceRequirements.contactInformation.primaryContact.phone}</span>
+                            </div>
+                          )}
+                          {dataAnalysis.complianceRequirements.contactInformation.primaryContact.fax && (
+                            <div className="flex justify-between">
+                              <span className="font-medium">Fax:</span>
+                              <span>{dataAnalysis.complianceRequirements.contactInformation.primaryContact.fax}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Secondary Contact */}
+                      {dataAnalysis.complianceRequirements.contactInformation.secondaryContact && (
+                        <div className="space-y-3">
+                          <h4 className="font-semibold text-blue-900 border-b border-blue-200 pb-2">
+                            Secondary Contact
+                          </h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="font-medium">Name:</span>
+                              <span>{dataAnalysis.complianceRequirements.contactInformation.secondaryContact.name}</span>
+                            </div>
+                            {dataAnalysis.complianceRequirements.contactInformation.secondaryContact.title && (
+                              <div className="flex justify-between">
+                                <span className="font-medium">Title:</span>
+                                <span>{dataAnalysis.complianceRequirements.contactInformation.secondaryContact.title}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between">
+                              <span className="font-medium">Email:</span>
+                              <span className="text-blue-600 font-mono">{dataAnalysis.complianceRequirements.contactInformation.secondaryContact.email}</span>
+                            </div>
+                            {dataAnalysis.complianceRequirements.contactInformation.secondaryContact.phone && (
+                              <div className="flex justify-between">
+                                <span className="font-medium">Phone:</span>
+                                <span>{dataAnalysis.complianceRequirements.contactInformation.secondaryContact.phone}</span>
+                              </div>
+                            )}
+                            {dataAnalysis.complianceRequirements.contactInformation.secondaryContact.fax && (
+                              <div className="flex justify-between">
+                                <span className="font-medium">Fax:</span>
+                                <span>{dataAnalysis.complianceRequirements.contactInformation.secondaryContact.fax}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Submission Information */}
+                    <div className="mt-6 space-y-4">
+                      <div>
+                        <h4 className="font-semibold text-blue-900 border-b border-blue-200 pb-2 mb-3">
+                          Submission Details
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <span className="font-medium">Submission Emails:</span>
+                            <div className="mt-1 space-y-1">
+                              {dataAnalysis.complianceRequirements.contactInformation.submissionEmail.map((email, index) => (
+                                <div key={index} className="text-blue-600 font-mono bg-blue-50 px-2 py-1 rounded">
+                                  {email}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="font-medium">Submission Instructions:</span>
+                            <p className="mt-1 text-gray-700 bg-gray-50 px-3 py-2 rounded">
+                              {dataAnalysis.complianceRequirements.contactInformation.submissionInstructions}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Office Address */}
+                      {dataAnalysis.complianceRequirements.contactInformation.officeAddress && (
+                        <div>
+                          <h4 className="font-semibold text-blue-900 border-b border-blue-200 pb-2 mb-3">
+                            Contracting Office Address
+                          </h4>
+                          <div className="text-sm bg-gray-50 px-3 py-2 rounded">
+                            {dataAnalysis.complianceRequirements.contactInformation.officeAddress.street && (
+                              <div>{dataAnalysis.complianceRequirements.contactInformation.officeAddress.street}</div>
+                            )}
+                            <div>
+                              {dataAnalysis.complianceRequirements.contactInformation.officeAddress.city}, {' '}
+                              {dataAnalysis.complianceRequirements.contactInformation.officeAddress.state} {' '}
+                              {dataAnalysis.complianceRequirements.contactInformation.officeAddress.zipCode}
+                            </div>
+                            <div>{dataAnalysis.complianceRequirements.contactInformation.officeAddress.country}</div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

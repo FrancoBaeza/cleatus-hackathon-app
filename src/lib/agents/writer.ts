@@ -249,6 +249,13 @@ export async function runWriterAgent(
             return `- ${form.name}: ${form.description} (${form.criticality})${formFieldsInfo}`;
         }).join('\n')}
 
+        CONTACT INFORMATION FOR SUBMISSION:
+        Primary Contact: ${dataAnalysis.complianceRequirements.contactInformation?.primaryContact?.name || 'Not specified'} (${dataAnalysis.complianceRequirements.contactInformation?.primaryContact?.email || 'No email'})
+        Secondary Contact: ${dataAnalysis.complianceRequirements.contactInformation?.secondaryContact?.name || 'Not specified'} (${dataAnalysis.complianceRequirements.contactInformation?.secondaryContact?.email || 'No email'})
+        Submission Emails: ${dataAnalysis.complianceRequirements.contactInformation?.submissionEmail?.join(', ') || 'Not specified'}
+        Submission Instructions: ${dataAnalysis.complianceRequirements.contactInformation?.submissionInstructions || 'Not specified'}
+        Office Address: ${dataAnalysis.complianceRequirements.contactInformation?.officeAddress ? `${dataAnalysis.complianceRequirements.contactInformation.officeAddress.city}, ${dataAnalysis.complianceRequirements.contactInformation.officeAddress.state} ${dataAnalysis.complianceRequirements.contactInformation.officeAddress.zipCode}` : 'Not specified'}
+
         CREATE HIERARCHICAL RESPONSE STRUCTURE:
 
         IMPORTANT: Generate a hierarchical structure where content is properly nested under headers.
@@ -265,6 +272,7 @@ export async function runWriterAgent(
         3. Technical Approach - Address each deliverable and technical specification from the contract
         4. Project Management - Show understanding of contract timeline and requirements
         5. Pricing and Terms - Address contract payment terms and delivery requirements
+        6. Submission Information - Include complete contact information and submission instructions
 
         CREATIVE STRUCTURE GUIDELINES:
         - Use creative, engaging section titles that reflect the specific contract
@@ -323,6 +331,14 @@ export async function runWriterAgent(
         - Structure forms as FORM blocks with metadata containing field definitions
         - Ensure forms are submission-ready and compliant
         - Use real, specific data, never placeholder text
+
+        SUBMISSION INFORMATION REQUIREMENTS:
+        - Include a dedicated section with complete contact information
+        - List all submission email addresses clearly
+        - Include specific submission instructions and deadlines
+        - Provide office address and contact details
+        - Make submission information easily accessible for automated sending
+        - Include any special submission requirements or formatting instructions
 
         Generate a complete hierarchical structure with approximately 15-30 total blocks (including all headers and content). Adapt the structure to the contract complexity and entity strengths. This atomized approach allows for better content organization and editing flexibility.`;
 

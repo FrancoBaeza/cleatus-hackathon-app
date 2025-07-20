@@ -27,6 +27,7 @@ import { type ResponseBlock } from '@/lib/types';
 import AgentProgressPanel from './AgentProgressPanel';
 import ResponseEditor from './ResponseEditor';
 import AgentResults from './AgentResults';
+import ExportAndSubmitButtons from './ExportAndSubmitButtons';
 
 import ActionButtons from '@/components/ActionButtons';
 
@@ -104,6 +105,27 @@ export default function RFQResponseGenerator() {
                         </TabsList>
 
                         <TabsContent value="editor" className="space-y-6">
+                            {/* Export and Submit Section */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center justify-between">
+                                        <span>Export & Submit</span>
+                                        <div className="text-sm text-gray-500">
+                                            Generate PDF and prepare email submission
+                                        </div>
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <ExportAndSubmitButtons
+                                        blocks={responseBlocks}
+                                        contactInfo={finalResponse?.agentInsights?.dataAnalysis?.complianceRequirements?.contactInformation}
+                                        rfqNumber={finalResponse?.agentInsights?.dataAnalysis?.contractInfo?.type || 'Current RFQ'}
+                                        companyName="Your Company"
+                                    />
+                                </CardContent>
+                            </Card>
+
+                            {/* Response Editor */}
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center justify-between">
@@ -125,6 +147,27 @@ export default function RFQResponseGenerator() {
 
 
                         <TabsContent value="insights" className="space-y-6">
+                            {/* Export and Submit Section */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center justify-between">
+                                        <span>Export & Submit</span>
+                                        <div className="text-sm text-gray-500">
+                                            Generate PDF and prepare email submission
+                                        </div>
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <ExportAndSubmitButtons
+                                        blocks={responseBlocks}
+                                        contactInfo={finalResponse?.agentInsights?.dataAnalysis?.complianceRequirements?.contactInformation}
+                                        rfqNumber={finalResponse?.agentInsights?.dataAnalysis?.contractInfo?.type || 'Current RFQ'}
+                                        companyName="Your Company"
+                                    />
+                                </CardContent>
+                            </Card>
+
+                            {/* Agent Insights */}
                             <Card>
                                 <CardHeader>
                                     <CardTitle>AI Agent Insights & Analysis</CardTitle>
